@@ -1,118 +1,75 @@
-from typing import List, Set
+from typing import Optional, List, Tuple
+from copy import deepcopy
 import numpy as np
-from numpy.typing import ArrayLike
 
-from .core import Color, IllegalMoveError, ImpossibleMoveError
-from .move import Move
+from .core import Color, GameResult, IllegalMoveError
 from .board import Board
+from .players import Player
+from .legal import Action, do_action, is_legal_action
 
 
-def build_legal_move(board: Board, src: int, pips: int) -> Move:
-    color = board.color_at(src)
-    if color == Color.NONE:
-        raise ImpossibleMoveError(f"no checkers to move from index {src}")
-
-    if board.turn != Color.NONE and color != board.turn:
-        raise IllegalMoveError(f"checker's color {color} does not match board turn {board.turn}")
-
-    if ((color == Color.WHITE and board[25] > 0 and src != 25)
-            or (color == Color.BLACK and board[0] < 0 and src != 0)):
-        raise IllegalMoveError("checkers on bar need to be moved first")
-
-    # naive move
-    dst = src - color.value * pips
-    hit = False
-
-    if dst <= 0 or 25 <= dst:
-        # bearing off - if it is allowed
-        if not board.bearing_off_allowed(color):
-            raise IllegalMoveError("bearing off when not all checkers on home board not allowed")
-        if dst not in (0, 25):
-            if board.checkers_before(src, color):
-                raise IllegalMoveError(f"need (still) to bear off exactly from {src}")
-            dst = max(0, min(dst, 25))
-    else:
-        # move on regular point - check if not blocked / hit
-        n_dst = board[dst]
-        if -n_dst * color.value > 1:
-            raise IllegalMoveError(f"destination point {dst} is blocked by other color")
-        elif n_dst == -color.value:
-            hit = True
-
-    return Move(src, dst, hit)
+def roll_dice() -> np.ndarray:
+    return np.random.randint(1, 7, size=(2,))
 
 
-def build_legal_moves(board: Board, pips: int) -> List[Move]:
-    if not 1 <= pips <= 6:
-        raise ValueError(f"pips / dice number must be 1, 2, 3, 4, 5, or 6; got {pips}")
+class History(List[Tuple[np.ndarray, Action]]):
 
-    moves = []
-    for start in range(26):
-        try:
-            m = build_legal_move(board, start, pips)
-            moves.append(m)
-        except IllegalMoveError:
-            pass
+    def __repr__(self):
+        return f"<History, len={len(self)}>"
 
-    return moves
-
-
-def do_action(board: Board, action: List[Move]):
-    for move in action:
-        board.do_move(move)
-    board.switch_turn()
+    def show(self, **kwargs):
+        ply = 0
+        for dice, action in self:
+            act = f"{dice[0]}-{dice[1]}: {str(action):28s}"
+            if ply % 2 == 0:
+                print(f"{ply // 2 + 1:3d}) {act}", end=' ', **kwargs)
+            else:
+                print(f"{act}", **kwargs)
+            ply += 1
 
 
-def undo_action(board: Board, action: List[Move]):
-    board.switch_turn()
-    for move in action[::-1]:
-        board.undo_move(move)
+class Game:
 
+    def __init__(self, white: Player, black: Player, start_board: Optional[Board] = None):
+        self.white = white
+        self.black = black
+        self._board = Board() if start_board is None else start_board.copy()
+        self._history: History = History()
 
-def _legal_actions(board: Board, dice: ArrayLike) -> List[List[Move]]:
-    dice = np.array(dice, dtype=int)
-    assert dice.ndim == 1
+    def __len__(self) -> int:
+        return len(self._history)
 
-    if board.turn is Color.NONE:
-        raise ValueError("Cannot generate actions, if it's no-one's turn")
+    def get_board(self) -> Board:
+        return self._board.copy()
 
-    if len(dice) == 0:
-        return [[]]
+    @property
+    def game_over(self) -> bool:
+        return self._board.game_over()
 
-    actions = []
-    for move in build_legal_moves(board, dice[0]):
-        board.do_move(move)
-        act = _legal_actions(board, dice[1:])
-        board.undo_move(move)
-        actions += [[move] + a for a in act]
-    if len(actions) == 0:
-        actions = [[]]
+    def get_result(self) -> GameResult:
+        return self._board.result()
 
-    return actions
+    def get_history(self) -> History:
+        return deepcopy(self._history)
 
+    def roll_dice(self) -> np.ndarray:
+        if self._board.turn is Color.NONE:
+            dice = np.ones(2, dtype=int)
+            while dice[0] == dice[1]:
+                dice = roll_dice()
+            self._board.turn = Color.BLACK if dice[0] > dice[1] else Color.WHITE
+            return dice
+        else:
+            return roll_dice()
 
-def _unique_actions(board: Board, actions: List[List[Move]]) -> List[List[Move]]:
-    final_boards: Set[int] = set()
+    @property
+    def turn(self) -> Color:
+        return self._board.turn
 
-    u_actions = []
-    for action in actions:
-        do_action(board, action)
-        if hash(board) not in final_boards:
-            final_boards.add(hash(board))
-            u_actions.append(action)
-        undo_action(board, action)
-
-    return u_actions
-
-
-def legal_actions(board: Board, dice: ArrayLike) -> List[List[Move]]:
-    # TODO: update algo, since not efficient for double rolls, because of the many equivalent permutations
-    dice = np.array(dice, dtype=int)
-    assert dice.shape == (2,)
-
-    if dice[0] == dice[1]:
-        actions = _legal_actions(board, [dice[0]] * 4)
-    else:
-        actions = _legal_actions(board, dice) + _legal_actions(board, dice[::-1])
-
-    return _unique_actions(board, actions)
+    def do_turn(self):
+        dice = self.roll_dice()
+        player = self.white if self._board.turn == Color.WHITE else self.black
+        action = player.choose_action(self._board, dice)
+        is_legal_action(action, self._board, raise_except=True)
+        do_action(self._board, action)
+        self._history.append((dice, action))

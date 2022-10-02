@@ -104,10 +104,6 @@ class Board:
             raise ValueError(f"stake needs to be a power of 2, got {stake}")
         self._stake_pow = stake_pow
 
-    def double_stake(self) -> int:
-        self._stake_pow += 1
-        return 2 ** self._stake_pow
-
     @overload
     def pip_count(self, color: None = None) -> np.ndarray: ...
 
@@ -253,11 +249,11 @@ class Board:
             s = " +-12-11-10--9--8--7--+---+--6--5--4--3--2--1--+\n"
         else:
             s = " +-13-14-15-16-17-18--+---+-19-20-21-22-23-24--+\n"
-        s += build_half(self._points[13:25], False, self._points[-1])
+        s += build_half(self._points[13:25], False, self._points[_WHITE_BAR])
         s += "\n |                    |"
         s += ("BAR" if self._stake_pow == 0 else f"x{self.stake:2d}" if self.stake < 100 else f"{self.stake:3d}")
         s += "|                    |\n"
-        s += build_half(self._points[1:13], True, self._points[0])
+        s += build_half(self._points[1:13], True, self._points[_BLACK_BAR])
         if self._turn == Color.BLACK:
             s += "\n +-13-14-15-16-17-18--+---+-19-20-21-22-23-24--+\n"
         else:

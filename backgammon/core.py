@@ -21,11 +21,11 @@ _BLACK_BAR = 0
 
 
 class GameResult(NamedTuple):
-    winner: Color
-    doubling_cube: int
+    winner: Color = Color.NONE
+    doubling_cube: int = 1
     # TODO: this data structure allows for gammon=False and backgammon=True, which does not make sense..
-    gammon: bool
-    backgammon: bool
+    gammon: bool = False
+    backgammon: bool = False
 
     @property
     def stake(self) -> int:
