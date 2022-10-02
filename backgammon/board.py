@@ -46,7 +46,7 @@ class Board:
 
     def __copy__(self) -> 'Board':
         return Board(
-            points=-self._points,
+            points=self._points,
             turn=self._turn,
             stake_pow=self._stake_pow,
             copy=True,
