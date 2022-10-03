@@ -3,7 +3,7 @@ from numpy.typing import ArrayLike
 import numpy as np
 
 from ..board import Board
-from ..legal import Action
+from ..legal_actions import Action
 
 
 class Player(ABC):

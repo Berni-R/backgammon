@@ -16,21 +16,21 @@ class Board:
             doubling_turn: Color = Color.NONE,
             copy: bool = True,
     ):
-        self._points = _START_POINTS.copy() if points is None else np.array(points, dtype=int, copy=copy)
-        if self._points.shape != (24 + 2,):
-            raise ValueError(f"points must have shape (26,), but got shape {self._points.shape}")
+        self.points = _START_POINTS.copy() if points is None else np.array(points, dtype=int, copy=copy)
+        if self.points.shape != (24 + 2,):
+            raise ValueError(f"points must have shape (26,), but got shape {self.points.shape}")
         self._turn = turn
         self._stake_pow = stake_pow
         self._doubling_turn = doubling_turn
 
     def __hash__(self) -> int:
-        return hash(tuple(self._points) + (self._turn, self._stake_pow, self._doubling_turn))
+        return hash(tuple(self.points) + (self._turn, self._stake_pow, self._doubling_turn))
 
     def __repr__(self) -> str:
         def arr2str(arr):
             return "[" + ",".join(map(lambda n: f"{n:2d}", arr)) + "]"
         r = f"State(\n" \
-            f"  points        = {arr2str(self._points)},\n" \
+            f"  points        = {arr2str(self.points)},\n" \
             f"  turn          = {self._turn},\n" \
             f"  stake_pow     = {self._stake_pow},\n" \
             f"  doubling_turn = {self._doubling_turn},\n" \
@@ -39,7 +39,7 @@ class Board:
 
     def __eq__(self, other: 'Board') -> bool:
         return (
-                np.all(self._points == other._points)
+                np.all(self.points == other.points)
                 and self._turn == other._turn
                 and self._stake_pow == other._stake_pow
                 and self._doubling_turn == other._doubling_turn
@@ -50,7 +50,7 @@ class Board:
 
     def __copy__(self) -> 'Board':
         return Board(
-            points=self._points,
+            points=self.points,
             turn=self._turn,
             stake_pow=self._stake_pow,
             doubling_turn=self._doubling_turn,
@@ -58,14 +58,14 @@ class Board:
         )
 
     def flip(self):
-        self._points = -self._points[::-1]
+        self.points = -self.points[::-1]
         self._turn = self._turn.other()
         # self._stake_pow = self._stake_pow
         self._doubling_turn = self._doubling_turn.other()
 
     def flipped(self, copy: bool = True) -> 'Board':
         return Board(
-            points=-self._points[::-1],
+            points=-self.points[::-1],
             turn=self._turn.other(),
             stake_pow=self._stake_pow,
             doubling_turn=self._doubling_turn.other(),
@@ -74,14 +74,14 @@ class Board:
 
     # TODO: type hints for slices and Co.
     def __getitem__(self, point: int) -> int:
-        return self._points[point]
+        return self.points[point]
 
     # TODO: type hints for slices and Co.
     def __setitem__(self, point: int, checkers: int):
-        self._points[point] = checkers
+        self.points[point] = checkers
 
     def color_at(self, point: int) -> Color:
-        return Color(np.sign(self._points[point]))
+        return Color(np.sign(self.points[point]))
 
     @property
     def turn(self) -> Color:
@@ -132,14 +132,14 @@ class Board:
 
     def pip_count(self, color=None):
         if color is None:
-            black = (self._points < 0)
+            black = (self.points < 0)
             return np.array([
-                -np.sum((self._points * np.arange(26)[::-1])[black]),
-                np.sum((self._points * np.arange(26))[~black]),
+                -np.sum((self.points * np.arange(26)[::-1])[black]),
+                np.sum((self.points * np.arange(26))[~black]),
             ])
         else:
-            mask = (color.value * self._points > 0)
-            return color.value * np.sum((self._points * np.arange(26)[::color.value])[mask])
+            mask = (color.value * self.points > 0)
+            return color.value * np.sum((self.points * np.arange(26)[::color.value])[mask])
 
     @overload
     def checkers_count(self, color: None = None) -> np.ndarray: ...
@@ -150,11 +150,11 @@ class Board:
     def checkers_count(self, color=None):
         if color is None:
             return np.array([
-                -self._points[self._points < 0].sum(),
-                self._points[self._points > 0].sum(),
+                -self.points[self.points < 0].sum(),
+                self.points[self.points > 0].sum(),
             ])
         else:
-            return color.value * np.sum(self._points[color.value * self._points > 0])
+            return color.value * np.sum(self.points[color.value * self.points > 0])
 
     def game_over(self) -> bool:
         return np.any(self.pip_count() == 0)
@@ -192,9 +192,9 @@ class Board:
 
     def checkers_before(self, point: int, color: Color) -> bool:
         if color == Color.WHITE:
-            return np.any(self._points[point + 1:] > 0)
+            return np.any(self.points[point + 1:] > 0)
         elif color == Color.BLACK:
-            return np.any(self._points[:point] < 0)
+            return np.any(self.points[:point] < 0)
         else:
             return False
 
@@ -213,12 +213,12 @@ class Board:
         color = self.color_at(move.src)
 
         if move.hit:
-            self._points[move.dst] += color.value
-            self._points[_WHITE_BAR if color == Color.BLACK else _BLACK_BAR] -= color.value
+            self.points[move.dst] += color.value
+            self.points[_WHITE_BAR if color == Color.BLACK else _BLACK_BAR] -= color.value
 
-        self._points[move.src] -= color.value
+        self.points[move.src] -= color.value
         if move.dst not in (_BLACK_BAR, _WHITE_BAR):
-            self._points[move.dst] += color.value
+            self.points[move.dst] += color.value
 
     def undo_move(self, move: Move):
         if move.dst == 0:
@@ -228,13 +228,13 @@ class Board:
         else:
             color = self.color_at(move.dst)
 
-        self._points[move.src] += color.value
+        self.points[move.src] += color.value
         if move.dst not in (0, 25):
-            self._points[move.dst] -= color.value
+            self.points[move.dst] -= color.value
 
         if move.hit:
-            self._points[move.dst] -= color.value
-            self._points[_WHITE_BAR if color == Color.BLACK else _BLACK_BAR] += color.value
+            self.points[move.dst] -= color.value
+            self.points[_WHITE_BAR if color == Color.BLACK else _BLACK_BAR] += color.value
 
     def show(self, info: bool = True, syms: Sequence[str] = _COLOR_SYMBOLS, **kwargs):
         print(self.ascii_art(info=info, syms=syms), **kwargs)
@@ -278,9 +278,9 @@ class Board:
             s = " +-12-11-10--9--8--7--+---+--6--5--4--3--2--1--+\n"
         else:
             s = " +-13-14-15-16-17-18--+---+-19-20-21-22-23-24--+\n"
-        s += build_half(self._points[13:25], False, self._points[_WHITE_BAR])
+        s += build_half(self.points[13:25], False, self.points[_WHITE_BAR])
         s += "\n |                    |   |                    |\n"
-        s += build_half(self._points[1:13], True, self._points[_BLACK_BAR])
+        s += build_half(self.points[1:13], True, self.points[_BLACK_BAR])
         if self._turn == Color.BLACK:
             s += "\n +-13-14-15-16-17-18--+---+-19-20-21-22-23-24--+\n"
         else:

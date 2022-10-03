@@ -5,7 +5,7 @@ import numpy as np
 from .core import Color, GameResult
 from .board import Board
 from .players import Player
-from .legal import Action, do_action, is_legal_action
+from .legal_actions import Action, do_action, is_legal_action
 
 
 def roll_dice() -> np.ndarray:
@@ -32,18 +32,17 @@ class History(List[Tuple[np.ndarray, Action]]):
 
 
 class Game:
+    # TODO: implement automatic doubling, beavers, Jacoby Rule
+    # TODO: might want to let player check, previous move was legal or accept otherwise
 
     def __init__(self, white: Player, black: Player, start_board: Optional[Board] = None):
         self.white = white
         self.black = black
-        self._board = Board() if start_board is None else start_board.copy()
+        self.board = Board() if start_board is None else start_board.copy()
         self._history: History = History()
 
     def __len__(self) -> int:
         return len(self._history)
-
-    def get_board(self) -> Board:
-        return self._board.copy()
 
     def resigned(self) -> bool:
         if len(self._history) == 0:
@@ -52,36 +51,41 @@ class Game:
         return action.takes is False
 
     def game_over(self) -> bool:
-        return self.resigned() or self._board.game_over()
+        return self.resigned() or self.board.game_over()
+
+    def winner(self) -> Color:
+        if self.resigned():
+            return self.board.turn
+        return self.board.winner()
 
     def get_result(self) -> GameResult:
         if self.resigned():
-            winner = self._board.turn
+            winner = self.board.turn
             return GameResult(
                 winner=winner,
-                doubling_cube=self._board.stake,
-                # gammon=self._board.is_gammon(winner.other()),
-                # backgammon=self._board.is_backgammon(winner.other()),
+                doubling_cube=self.board.stake,
+                # gammon=self.board.is_gammon(winner.other()),
+                # backgammon=self.board.is_backgammon(winner.other()),
             )
         else:
-            return self._board.result()
+            return self.board.result()
 
     def get_history(self) -> History:
         return deepcopy(self._history)
 
     def roll_dice(self) -> np.ndarray:
-        if self._board.turn is Color.NONE:
+        if self.board.turn is Color.NONE:
             dice = np.ones(2, dtype=int)
             while dice[0] == dice[1]:
                 dice = roll_dice()
-            self._board.turn = Color.BLACK if dice[0] > dice[1] else Color.WHITE
+            self.board.turn = Color.BLACK if dice[0] > dice[1] else Color.WHITE
             return dice
         else:
             return roll_dice()
 
     @property
     def turn(self) -> Color:
-        return self._board.turn
+        return self.board.turn
 
     def next_has_to_respond_to_doubling(self) -> bool:
         if len(self._history) == 0:
@@ -89,15 +93,16 @@ class Game:
         _, action = self._history[-1]
         return action.doubles > 0 and action.takes is None
 
-    def do_turn(self):
+    def do_turn(self) -> Tuple[np.ndarray, Action]:
         # need to first roll dice, because first roll needed to determine player to begin
         dice = self.roll_dice()
-        player = self.white if self._board.turn == Color.WHITE else self.black
+        player = self.white if self.board.turn == Color.WHITE else self.black
         if self.next_has_to_respond_to_doubling():
-            action = player.respond_to_doubling(self._board)
+            action = player.respond_to_doubling(self.board)
             assert action.takes is not None
         else:
-            action = player.choose_action(self._board, dice)
-        is_legal_action(action, self._board, raise_except=True)
-        do_action(self._board, action)
-        self._history.append((dice, action))
+            action = player.choose_action(self.board, dice)
+        is_legal_action(action, self.board, raise_except=True)
+        do_action(self.board, action)
+        self._history.append((dice.copy(), action.copy()))
+        return dice, action

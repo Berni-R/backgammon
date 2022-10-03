@@ -1,4 +1,5 @@
 from typing import List, Set, Tuple, Union, Sequence, Optional
+from copy import copy
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -21,6 +22,16 @@ class Action:
         self.moves = [] if doubles else moves
         self.doubles = doubles
         self.takes = takes
+
+    def __copy__(self) -> 'Action':
+        return Action(
+            [copy(move) for move in self.moves],
+            self.doubles,
+            self.takes,
+        )
+
+    def copy(self) -> 'Action':
+        return self.__copy__()
 
     def __repr__(self) -> str:
         r = f"Action({list(self.moves)}"
