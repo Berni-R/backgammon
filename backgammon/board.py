@@ -13,6 +13,7 @@ class Board:
             points: Optional[ArrayLike] = None,
             turn: Color = Color.NONE,
             stake_pow: int = 0,
+            doubling_turn: Color = Color.NONE,
             copy: bool = True,
     ):
         self._points = _START_POINTS.copy() if points is None else np.array(points, dtype=int, copy=copy)
@@ -20,17 +21,19 @@ class Board:
             raise ValueError(f"points must have shape (26,), but got shape {self._points.shape}")
         self._turn = turn
         self._stake_pow = stake_pow
+        self._doubling_turn = doubling_turn
 
     def __hash__(self) -> int:
-        return hash(tuple(self._points) + (self._turn, self._stake_pow))
+        return hash(tuple(self._points) + (self._turn, self._stake_pow, self._doubling_turn))
 
     def __repr__(self) -> str:
         def arr2str(arr):
             return "[" + ",".join(map(lambda n: f"{n:2d}", arr)) + "]"
         r = f"State(\n" \
-            f"  points     = {arr2str(self._points)},\n" \
-            f"  turn       = {self._turn},\n" \
-            f"  stake_pow  = {self._stake_pow},\n" \
+            f"  points        = {arr2str(self._points)},\n" \
+            f"  turn          = {self._turn},\n" \
+            f"  stake_pow     = {self._stake_pow},\n" \
+            f"  doubling_turn = {self._doubling_turn},\n" \
             f")"
         return r
 
@@ -39,6 +42,7 @@ class Board:
                 np.all(self._points == other._points)
                 and self._turn == other._turn
                 and self._stake_pow == other._stake_pow
+                and self._doubling_turn == other._doubling_turn
         )
 
     def copy(self) -> 'Board':
@@ -49,6 +53,7 @@ class Board:
             points=self._points,
             turn=self._turn,
             stake_pow=self._stake_pow,
+            doubling_turn=self._doubling_turn,
             copy=True,
         )
 
@@ -56,12 +61,14 @@ class Board:
         self._points = -self._points[::-1]
         self._turn = self._turn.other()
         # self._stake_pow = self._stake_pow
+        self._doubling_turn = self._doubling_turn.other()
 
     def flipped(self, copy: bool = True) -> 'Board':
         return Board(
             points=-self._points[::-1],
             turn=self._turn.other(),
             stake_pow=self._stake_pow,
+            doubling_turn=self._doubling_turn.other(),
             copy=copy,
         )
 
@@ -88,6 +95,19 @@ class Board:
 
     def switch_turn(self):
         self._turn = self._turn.other()
+
+    @property
+    def doubling_turn(self) -> Color:
+        return self._doubling_turn
+
+    @doubling_turn.setter
+    def doubling_turn(self, turn: Color):
+        if not isinstance(turn, Color):
+            raise TypeError(f"can only set doubling turn to type Color, got {type(turn)}")
+        self._doubling_turn = turn
+
+    def switch_doubling_turn(self):
+        self._doubling_turn = self._doubling_turn.other()
 
     @property
     def stake(self) -> int:
@@ -148,17 +168,26 @@ class Board:
         else:
             return Color.NONE
 
+    def is_gammon(self, looser: Color) -> bool:
+        if looser is Color.NONE:
+            raise ValueError(f"no looser given to determine whether it's gammon")
+        return self.checkers_count(looser) == 15
+
+    def is_backgammon(self, looser: Color) -> bool:
+        if looser is Color.NONE:
+            raise ValueError(f"no looser given to determine whether it's backgammon")
+        if self.checkers_count(looser) == 15:
+            return ((looser == Color.BLACK and self.checkers_before(7, Color.BLACK)) or
+                    (looser == Color.WHITE and self.checkers_before(18, Color.WHITE)))
+        return False
+
     def result(self) -> GameResult:
         winner = self.winner()
         gammon, backgammon = False, False
         if winner is not Color.NONE:
             looser = winner.other()
-            if self.checkers_count(looser) == 15:
-                gammon = True
-                if looser == Color.BLACK and self.checkers_before(7, Color.WHITE):
-                    backgammon = True
-                if looser == Color.WHITE and self.checkers_before(18, Color.WHITE):
-                    backgammon = True
+            gammon = self.is_gammon(looser)
+            backgammon = self.is_backgammon(looser)
         return GameResult(winner, 2 ** self._stake_pow, gammon, backgammon)
 
     def checkers_before(self, point: int, color: Color) -> bool:
@@ -207,16 +236,16 @@ class Board:
             self._points[move.dst] -= color.value
             self._points[_WHITE_BAR if color == Color.BLACK else _BLACK_BAR] += color.value
 
-    def show(self, syms: Sequence[str] = _COLOR_SYMBOLS, **kwargs):
-        print(self.ascii_art(syms), **kwargs)
+    def show(self, info: bool = True, syms: Sequence[str] = _COLOR_SYMBOLS, **kwargs):
+        print(self.ascii_art(info=info, syms=syms), **kwargs)
 
-    def ascii_art(self, syms: Sequence[str] = _COLOR_SYMBOLS) -> str:
+    def ascii_art(self, info: bool = True, syms: Sequence[str] = _COLOR_SYMBOLS) -> str:
         assert len(syms) == 3
         assert all(isinstance(s, str) for s in syms)
         assert all(len(s) == 1 for s in syms)
         symbols = np.array(syms)
 
-        def build_half(points: np.ndarray, flip: bool, bar: int):
+        def build_half(points: np.ndarray, bottom: bool, bar: int):
             points = np.concatenate([points[:6], [bar], points[6:]])
 
             rows = []
@@ -236,23 +265,21 @@ class Board:
             rows = np.array(rows)
             rows[:, 6] = rows[::-1, 6]  # stack checkers on bar from center, not from edge
 
-            if flip:
+            if bottom:
                 rows = rows[::-1, ::-1]
 
             def build_row(row):
                 return ' |  ' + '  '.join(row[:6]) + f'  | {row[6]} |  ' + '  '.join(row[7:]) + '  |'
-            rows = '\n'.join([build_row(row) for row in rows])
+            rows = [build_row(row) for row in rows]
 
-            return rows
+            return '\n'.join(rows)
 
         if self._turn == Color.BLACK:
             s = " +-12-11-10--9--8--7--+---+--6--5--4--3--2--1--+\n"
         else:
             s = " +-13-14-15-16-17-18--+---+-19-20-21-22-23-24--+\n"
         s += build_half(self._points[13:25], False, self._points[_WHITE_BAR])
-        s += "\n |                    |"
-        s += ("BAR" if self._stake_pow == 0 else f"x{self.stake:2d}" if self.stake < 100 else f"{self.stake:3d}")
-        s += "|                    |\n"
+        s += "\n |                    |   |                    |\n"
         s += build_half(self._points[1:13], True, self._points[_BLACK_BAR])
         if self._turn == Color.BLACK:
             s += "\n +-13-14-15-16-17-18--+---+-19-20-21-22-23-24--+\n"
@@ -261,7 +288,19 @@ class Board:
 
         s = list(s)
         assert len(s) == 13 * 49
-
         s[49 * 6] = ('^', '?', 'v')[self._turn.value + 1]
+        s = ''.join(s)
 
-        return ''.join(s)
+        s = s.splitlines()
+        if self._stake_pow != 0:
+            if self._doubling_turn == Color.BLACK:
+                s[1] += f" x{self.stake:2d}"
+            if self._doubling_turn == Color.WHITE:
+                s[-2] += f" x{self.stake:2d}"
+        s = '\n'.join(s)
+
+        if info:
+            for color, name in [(Color.BLACK, "Black"), (Color.WHITE, "White")]:
+                s += f"\n{name}:  {self.pip_count(color):3d} pips  /  borne off: {15 - self.checkers_count(color):2d}"
+
+        return s

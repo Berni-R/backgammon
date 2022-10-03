@@ -120,6 +120,13 @@ def is_legal_move(move: Move, board: Board, ret_reason: bool = False) -> Union[b
 def is_legal_action(action: Action, board: Board,
                     ret_reason: bool = False, raise_except: bool = False) -> Union[bool, Tuple[bool, str]]:
     if action.doubles:
+        if board.doubling_turn is not Color.NONE:
+            if action.takes is None:
+                if board.turn != board.doubling_turn:
+                    msg = f"it is not {board.turn}'s turn to double"
+                    if raise_except:
+                        raise IllegalMoveError(msg)
+                    return False, msg if ret_reason else False
         if action.doubles != 2 * board.stake:
             msg = f"'doubling' the stake from {board.stake} to {action.doubles} is illegal"
             if raise_except:
@@ -142,6 +149,7 @@ def do_action(board: Board, action: Action):
     if action.doubles:
         if action.takes:
             board.stake *= 2
+            board.doubling_turn = board.turn
     else:
         for move in action:
             board.do_move(move)
@@ -153,12 +161,14 @@ def undo_action(board: Board, action: Action):
     if action.doubles:
         if action.takes:
             board.stake /= 2
+            board.doubling_turn = Color.NONE if board.stake == 1 else board.turn.other()
     else:
         for move in action[::-1]:
             board.undo_move(move)
 
 
 def _legal_actions(board: Board, dice: ArrayLike) -> List[Action]:
+    """Does not include a potential doubling."""
     dice = np.array(dice, dtype=int)
     assert dice.ndim == 1
 
@@ -195,6 +205,7 @@ def _unique_actions(board: Board, actions: List[Action]) -> List[Action]:
 
 
 def legal_actions(board: Board, dice: ArrayLike) -> List[Action]:
+    """Does not include a potential doubling."""
     # TODO: update algo, since not efficient for double rolls, because of the many equivalent permutations
     dice = np.array(dice, dtype=int)
     assert dice.shape == (2,)

@@ -17,3 +17,11 @@ class Player(ABC):
     @abstractmethod
     def choose_action(self, board: Board, dice: ArrayLike) -> Action:
         ...
+
+    @abstractmethod
+    def will_take_doubling(self, board: Board) -> bool:
+        ...
+
+    def respond_to_doubling(self, board: Board) -> Action:
+        takes = self.will_take_doubling(board)
+        return Action([], board.stake * 2, takes=takes)
