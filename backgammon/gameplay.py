@@ -1,4 +1,5 @@
 from typing import Optional, List, Tuple
+from numpy.typing import NDArray
 from copy import deepcopy
 import numpy as np
 
@@ -8,11 +9,11 @@ from .players import Player
 from .legal_actions import Action, do_action, is_legal_action
 
 
-def roll_dice() -> np.ndarray:
+def roll_dice() -> NDArray[np.int_]:
     return np.random.randint(1, 7, size=(2,))
 
 
-class History(List[Tuple[np.ndarray, Action]]):
+class History(List[Tuple[NDArray[np.int_], Action]]):
 
     def __repr__(self):
         return f"<History, len={len(self)}>"
@@ -40,9 +41,13 @@ class Game:
         self.black = black
         self.board = Board() if start_board is None else start_board.copy()
         self._history: History = History()
+        self._first_move_color = Color.NONE
 
     def __len__(self) -> int:
         return len(self._history)
+
+    def color_began(self) -> Color:
+        return self._first_move_color
 
     def resigned(self) -> bool:
         if len(self._history) == 0:
@@ -73,12 +78,13 @@ class Game:
     def get_history(self) -> History:
         return deepcopy(self._history)
 
-    def roll_dice(self) -> np.ndarray:
+    def roll_dice(self) -> NDArray[np.int_]:
         if self.board.turn is Color.NONE:
             dice = np.ones(2, dtype=int)
             while dice[0] == dice[1]:
                 dice = roll_dice()
             self.board.turn = Color.BLACK if dice[0] > dice[1] else Color.WHITE
+            self._first_move_color = self.board.turn
             return dice
         else:
             return roll_dice()
@@ -93,7 +99,7 @@ class Game:
         _, action = self._history[-1]
         return action.doubles > 0 and action.takes is None
 
-    def do_turn(self) -> Tuple[np.ndarray, Action]:
+    def do_turn(self) -> Tuple[NDArray[np.int_], Action]:
         # need to first roll dice, because first roll needed to determine player to begin
         dice = self.roll_dice()
         player = self.white if self.board.turn == Color.WHITE else self.black

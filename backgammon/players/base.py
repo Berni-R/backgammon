@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from numpy.typing import ArrayLike
+from numpy.typing import ArrayLike, NDArray
 import numpy as np
 
 from ..board import Board
@@ -9,7 +9,7 @@ from ..legal_actions import Action
 class Player(ABC):
 
     @staticmethod
-    def _assert_dice_type(dice: ArrayLike) -> np.ndarray:
+    def _assert_dice_type(dice: ArrayLike) -> NDArray[np.int_]:
         dice = np.array(dice, dtype=int)
         assert dice.shape == (2,)
         return dice

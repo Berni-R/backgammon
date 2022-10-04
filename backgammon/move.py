@@ -1,5 +1,5 @@
 import numpy as np
-from typing import NamedTuple
+from typing import NamedTuple, Union
 
 
 class Move(NamedTuple):
@@ -10,8 +10,8 @@ class Move(NamedTuple):
     def to_str(self, bar_off: bool = True, regular: bool = True) -> str:
         if regular and self.src < self.dst:
             return self.flipped().to_str(bar_off, regular=False)
-        src = self.src
-        dst = self.dst
+        src: Union[int, str] = self.src
+        dst: Union[int, str] = self.dst
         if bar_off:
             # it is impossible to move from off or to bar
             src = 'bar' if self.src in (0, 25) else src

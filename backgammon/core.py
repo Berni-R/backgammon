@@ -1,16 +1,16 @@
 from typing import NamedTuple
-from enum import Enum
+from enum import IntEnum
 import numpy as np
 
 
-class Color(Enum):
+class Color(IntEnum):
 
     BLACK = -1
     NONE = 0
     WHITE = +1
 
     def other(self) -> 'Color':
-        return Color(-self.value)
+        return Color(-self)
 
 
 _COLOR_SYMBOLS = ('X', ' ', 'O')

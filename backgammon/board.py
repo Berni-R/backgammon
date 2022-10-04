@@ -1,5 +1,5 @@
-from typing import Sequence, Optional, overload
-from numpy.typing import ArrayLike
+from typing import Sequence, Optional, Any, overload
+from numpy.typing import ArrayLike, NDArray
 import numpy as np
 
 from .core import Color, _COLOR_SYMBOLS, _START_POINTS, GameResult, _WHITE_BAR, _BLACK_BAR
@@ -24,7 +24,8 @@ class Board:
         self._doubling_turn = doubling_turn
 
     def __hash__(self) -> int:
-        return hash(tuple(self.points) + (self._turn, self._stake_pow, self._doubling_turn))
+        # the int cast makes PyCharm happy...
+        return hash(tuple(self.points) + (int(self._turn), self._stake_pow, int(self._doubling_turn)))
 
     def __repr__(self) -> str:
         def arr2str(arr):
@@ -37,9 +38,9 @@ class Board:
             f")"
         return r
 
-    def __eq__(self, other: 'Board') -> bool:
-        return (
-                np.all(self.points == other.points)
+    def __eq__(self, other: Any) -> bool:
+        return isinstance(other, Board) and (
+                bool(np.all(self.points == other.points))
                 and self._turn == other._turn
                 and self._stake_pow == other._stake_pow
                 and self._doubling_turn == other._doubling_turn
@@ -125,7 +126,7 @@ class Board:
         self._stake_pow = stake_pow
 
     @overload
-    def pip_count(self, color: None = None) -> np.ndarray: ...
+    def pip_count(self, color: None = None) -> NDArray[np.int_]: ...
 
     @overload
     def pip_count(self, color: Color) -> int: ...
@@ -138,11 +139,11 @@ class Board:
                 np.sum((self.points * np.arange(26))[~black]),
             ])
         else:
-            mask = (color.value * self.points > 0)
-            return color.value * np.sum((self.points * np.arange(26)[::color.value])[mask])
+            mask = (color * self.points > 0)
+            return color * np.sum((self.points * np.arange(26)[::color])[mask])
 
     @overload
-    def checkers_count(self, color: None = None) -> np.ndarray: ...
+    def checkers_count(self, color: None = None) -> NDArray[np.int_]: ...
 
     @overload
     def checkers_count(self, color: Color) -> int: ...
@@ -154,10 +155,10 @@ class Board:
                 self.points[self.points > 0].sum(),
             ])
         else:
-            return color.value * np.sum(self.points[color.value * self.points > 0])
+            return color * np.sum(self.points[color * self.points > 0])
 
     def game_over(self) -> bool:
-        return np.any(self.pip_count() == 0)
+        return bool(np.any(self.pip_count() == 0))
 
     def winner(self) -> Color:
         pip_cnt = self.pip_count()
@@ -170,12 +171,12 @@ class Board:
 
     def is_gammon(self, looser: Color) -> bool:
         if looser is Color.NONE:
-            raise ValueError(f"no looser given to determine whether it's gammon")
+            raise ValueError("no looser given to determine whether it's gammon")
         return self.checkers_count(looser) == 15
 
     def is_backgammon(self, looser: Color) -> bool:
         if looser is Color.NONE:
-            raise ValueError(f"no looser given to determine whether it's backgammon")
+            raise ValueError("no looser given to determine whether it's backgammon")
         if self.checkers_count(looser) == 15:
             return ((looser == Color.BLACK and self.checkers_before(7, Color.BLACK)) or
                     (looser == Color.WHITE and self.checkers_before(18, Color.WHITE)))
@@ -192,9 +193,9 @@ class Board:
 
     def checkers_before(self, point: int, color: Color) -> bool:
         if color == Color.WHITE:
-            return np.any(self.points[point + 1:] > 0)
+            return bool(np.any(self.points[point + 1:] > 0))
         elif color == Color.BLACK:
-            return np.any(self.points[:point] < 0)
+            return bool(np.any(self.points[:point] < 0))
         else:
             return False
 
@@ -213,12 +214,12 @@ class Board:
         color = self.color_at(move.src)
 
         if move.hit:
-            self.points[move.dst] += color.value
-            self.points[_WHITE_BAR if color == Color.BLACK else _BLACK_BAR] -= color.value
+            self.points[move.dst] += color
+            self.points[_WHITE_BAR if color == Color.BLACK else _BLACK_BAR] -= color
 
-        self.points[move.src] -= color.value
+        self.points[move.src] -= color
         if move.dst not in (_BLACK_BAR, _WHITE_BAR):
-            self.points[move.dst] += color.value
+            self.points[move.dst] += color
 
     def undo_move(self, move: Move):
         if move.dst == 0:
@@ -228,13 +229,13 @@ class Board:
         else:
             color = self.color_at(move.dst)
 
-        self.points[move.src] += color.value
+        self.points[move.src] += color
         if move.dst not in (0, 25):
-            self.points[move.dst] -= color.value
+            self.points[move.dst] -= color
 
         if move.hit:
-            self.points[move.dst] -= color.value
-            self.points[_WHITE_BAR if color == Color.BLACK else _BLACK_BAR] += color.value
+            self.points[move.dst] -= color
+            self.points[_WHITE_BAR if color == Color.BLACK else _BLACK_BAR] += color
 
     def show(self, info: bool = True, syms: Sequence[str] = _COLOR_SYMBOLS, **kwargs):
         print(self.ascii_art(info=info, syms=syms), **kwargs)
@@ -245,7 +246,7 @@ class Board:
         assert all(len(s) == 1 for s in syms)
         symbols = np.array(syms)
 
-        def build_half(points: np.ndarray, bottom: bool, bar: int):
+        def build_half(points: NDArray[np.int_], bottom: bool, bar: int):
             points = np.concatenate([points[:6], [bar], points[6:]])
 
             rows = []
@@ -262,15 +263,15 @@ class Board:
                 else:  # more than checker left
                     return str(abs(n))
             rows.append(np.fromiter(map(exceed_char, points), dtype='U1'))
-            rows = np.array(rows)
-            rows[:, 6] = rows[::-1, 6]  # stack checkers on bar from center, not from edge
+            rows_np = np.array(rows)
+            rows_np[:, 6] = rows_np[::-1, 6]  # stack checkers on bar from center, not from edge
 
             if bottom:
-                rows = rows[::-1, ::-1]
+                rows_np = rows_np[::-1, ::-1]
 
             def build_row(row):
                 return ' |  ' + '  '.join(row[:6]) + f'  | {row[6]} |  ' + '  '.join(row[7:]) + '  |'
-            rows = [build_row(row) for row in rows]
+            rows = [build_row(row) for row in rows_np]
 
             return '\n'.join(rows)
 
@@ -286,20 +287,21 @@ class Board:
         else:
             s += "\n +-12-11-10--9--8--7--+---+--6--5--4--3--2--1--+\n"
 
-        s = list(s)
         assert len(s) == 13 * 49
-        s[49 * 6] = ('^', '?', 'v')[self._turn.value + 1]
-        s = ''.join(s)
+        s_l = list(s)
+        s_l[49 * 6] = ('^', '?', 'v')[self._turn + 1]
+        s = ''.join(s_l)
 
-        s = s.splitlines()
+        s_l = s.splitlines()
         if self._stake_pow != 0:
             if self._doubling_turn == Color.BLACK:
-                s[1] += f" x{self.stake:2d}"
+                s_l[1] += f" x{self.stake:2d}"
             if self._doubling_turn == Color.WHITE:
-                s[-2] += f" x{self.stake:2d}"
-        s = '\n'.join(s)
+                s_l[-2] += f" x{self.stake:2d}"
+        s = '\n'.join(s_l)
 
         if info:
+            s += '\n'
             for color, name in [(Color.BLACK, "Black"), (Color.WHITE, "White")]:
                 s += f"\n{name}:  {self.pip_count(color):3d} pips  /  borne off: {15 - self.checkers_count(color):2d}"
 

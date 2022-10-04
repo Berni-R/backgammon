@@ -1,4 +1,4 @@
-from typing import List, Set, Tuple, Union, Sequence, Optional
+from typing import List, Set, Tuple, Union, Sequence, Optional, Iterator
 from copy import copy
 import numpy as np
 from numpy.typing import ArrayLike
@@ -12,7 +12,7 @@ __all__ = [
     'build_legal_move', 'build_legal_moves',
     'is_legal_move', 'is_legal_action',
     'do_action', 'undo_action',
-    'legal_actions',
+    'build_legal_actions',
 ]
 
 
@@ -53,7 +53,7 @@ class Action:
     def __str__(self) -> str:
         return self.to_str()
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Move]:
         return iter(self.moves)
 
     def __getitem__(self, item: Union[int, slice]) -> Union[Move, 'Action']:
@@ -83,7 +83,7 @@ def build_legal_move(board: Board, src: int, pips: int) -> Move:
         raise IllegalMoveError(f"checkers on bar need to be moved first for {color}")
 
     # naive move
-    dst = src - color.value * pips
+    dst = src - color * pips
     hit = False
 
     if dst <= 0 or 25 <= dst:
@@ -97,9 +97,9 @@ def build_legal_move(board: Board, src: int, pips: int) -> Move:
     else:
         # move on regular point - check if not blocked / hit
         n_dst = board[dst]
-        if -n_dst * color.value > 1:
+        if -n_dst * color > 1:
             raise IllegalMoveError(f"destination point {dst} is blocked by other color")
-        elif n_dst == -color.value:
+        elif n_dst == -color:
             hit = True
 
     return Move(src, dst, hit)
@@ -124,8 +124,8 @@ def is_legal_move(move: Move, board: Board, ret_reason: bool = False) -> Union[b
     try:
         build_legal_move(board, move.src, move.pips)
     except IllegalMoveError as e:
-        return False, str(e) if ret_reason else False
-    return True, "legal" if ret_reason else True
+        return (False, str(e)) if ret_reason else False
+    return (True, "legal") if ret_reason else True
 
 
 def is_legal_action(action: Action, board: Board,
@@ -137,12 +137,12 @@ def is_legal_action(action: Action, board: Board,
                     msg = f"it is not {board.turn}'s turn to double"
                     if raise_except:
                         raise IllegalMoveError(msg)
-                    return False, msg if ret_reason else False
+                    return (False, msg) if ret_reason else False
         if action.doubles != 2 * board.stake:
             msg = f"'doubling' the stake from {board.stake} to {action.doubles} is illegal"
             if raise_except:
                 raise IllegalMoveError(msg)
-            return False, msg if ret_reason else False
+            return (False, msg) if ret_reason else False
     else:
         test_board = board.copy()
         for move in action:
@@ -151,9 +151,9 @@ def is_legal_action(action: Action, board: Board,
             except IllegalMoveError as e:
                 if raise_except:
                     raise e
-                return False, str(e) if ret_reason else False
+                return (False, str(e)) if ret_reason else False
             test_board.do_move(move)
-    return True, "legal" if ret_reason else True
+    return (True, "legal") if ret_reason else True
 
 
 def do_action(board: Board, action: Action):
@@ -171,10 +171,10 @@ def undo_action(board: Board, action: Action):
     board.switch_turn()
     if action.doubles:
         if action.takes:
-            board.stake /= 2
+            board.stake //= 2
             board.doubling_turn = Color.NONE if board.stake == 1 else board.turn.other()
     else:
-        for move in action[::-1]:
+        for move in action.moves[::-1]:
             board.undo_move(move)
 
 
@@ -215,7 +215,7 @@ def _unique_actions(board: Board, actions: List[Action]) -> List[Action]:
     return u_actions
 
 
-def legal_actions(board: Board, dice: ArrayLike) -> List[Action]:
+def build_legal_actions(board: Board, dice: ArrayLike) -> List[Action]:
     """Does not include a potential doubling."""
     # TODO: update algo, since not efficient for double rolls, because of the many equivalent permutations
     dice = np.array(dice, dtype=int)
