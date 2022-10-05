@@ -1,5 +1,5 @@
 from typing import Optional, List, Tuple
-from numpy.typing import NDArray
+from numpy.typing import NDArray, ArrayLike
 from copy import deepcopy
 import numpy as np
 
@@ -36,9 +36,9 @@ class Game:
     # TODO: implement automatic doubling, beavers, Jacoby Rule
     # TODO: might want to let player check, previous move was legal or accept otherwise
 
-    def __init__(self, white: Player, black: Player, start_board: Optional[Board] = None):
-        self.white = white
+    def __init__(self, black: Player, white: Player, start_board: Optional[Board] = None):
         self.black = black
+        self.white = white
         self.board = Board() if start_board is None else start_board.copy()
         self._history: History = History()
         self._first_move_color = Color.NONE
@@ -53,7 +53,7 @@ class Game:
         if len(self._history) == 0:
             return False
         _, action = self._history[-1]
-        return action.takes is False
+        return action.is_dropping
 
     def game_over(self) -> bool:
         return self.resigned() or self.board.game_over()
@@ -99,15 +99,14 @@ class Game:
         _, action = self._history[-1]
         return action.doubles > 0 and action.takes is None
 
-    def do_turn(self) -> Tuple[NDArray[np.int_], Action]:
+    def do_turn(self, points: ArrayLike = (0, 0), match_ends_at: int = 1) -> Tuple[NDArray[np.int_], Action]:
         # need to first roll dice, because first roll needed to determine player to begin
         dice = self.roll_dice()
         player = self.white if self.board.turn == Color.WHITE else self.black
         if self.next_has_to_respond_to_doubling():
             action = player.respond_to_doubling(self.board)
-            assert action.takes is not None
         else:
-            action = player.choose_action(self.board, dice)
+            action = player.play(self.board, dice, points, match_ends_at)
         is_legal_action(action, self.board, raise_except=True)
         do_action(self.board, action)
         self._history.append((dice.copy(), action.copy()))

@@ -1,7 +1,6 @@
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 import numpy as np
 
-from ..core import Color
 from ..board import Board
 from .base import Player
 from ..legal_actions import Action, build_legal_actions
@@ -13,14 +12,13 @@ class RandomPlayer(Player):
         self.double_prob = double_prob
         self.double_take_prob = double_take_prob
 
-    def choose_action(self, board: Board, dice: ArrayLike) -> Action:
-        dice = Player._assert_dice_type(dice)
-        if board.doubling_turn is Color.NONE or board.turn == board.doubling_turn:
-            if np.random.rand() <= self.double_prob:
-                return Action([], board.stake * 2)
+    def _choose_action(self, board: Board, dice: NDArray[np.int_]) -> Action:
         actions = build_legal_actions(board, dice)
         action = actions[np.random.randint(len(actions))]
         return action
 
-    def will_take_doubling(self, board: Board) -> bool:
+    def _will_double(self, board: Board, points: NDArray[np.int_], match_ends_at: int) -> bool:
+        return np.random.rand() <= self.double_prob
+
+    def _will_take_doubling(self, board: Board, points: NDArray[np.int_], match_ends_at: int) -> bool:
         return np.random.rand() <= self.double_take_prob

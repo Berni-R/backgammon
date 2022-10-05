@@ -33,6 +33,10 @@ class Action:
     def copy(self) -> 'Action':
         return self.__copy__()
 
+    @property
+    def is_dropping(self) -> bool:
+        return self.takes is not None and not self.takes
+
     def __repr__(self) -> str:
         r = f"Action({list(self.moves)}"
         if self.doubles:
