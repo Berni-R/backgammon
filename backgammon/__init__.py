@@ -23,6 +23,6 @@ from .legal_actions import (
     do_action, undo_action, build_legal_actions
 )
 from .players import Player
-from .players import RandomPlayer
+from .players import RandomPlayer, SimplePlayer
 from .game import roll_dice, Game
 from .match import Match
