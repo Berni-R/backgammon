@@ -213,19 +213,20 @@ class Board:
         else:  # color == Color.NONE
             raise ValueError("need color to be WHITE or BLACK")
 
-    def hit_prob(self, point: int, by: Optional[Color] = None) -> float:
+    def hit_prob(self, point: int, by: Optional[Color] = None, only_legal: bool = False) -> float:
         """Calculate the probability by which the given point can be hit in the next move, given it is legal.
 
         Args:
-            point (int):    The point in question of being hit. This can be any point, also empty ones and those of the
-                            same color as `by`.
-            by (Color):     By which color the point might be hit. If it is None, it defaults to the opposing color of
-                            which the checkers on the given `point` are.
+            point (int):        The point in question of being hit. This can be any point, also empty ones and those of
+                                the same color as `by`.
+            by (Color):         By which color the point might be hit. If it is None, it defaults to the opposing color
+                                of which the checkers on the given `point` are.
+            only_legal (bool):  Restrict to legals moves. This means, that if there are checkers of the hitter's color
+                                on the bar, only considers those as potential hitters, ignore all other checkers.
 
         Returns:
-            p (float):      The probabilty by which the given point could be hit in the next move.
+            p (float):          The probabilty by which the given point could be hit in the next move.
         """
-        # TODO: only count legal moves - since bearing off cannot hit, we only have to check for stones on bar
         if not 0 <= point <= 25:
             raise IndexError(f"{point} is not a valid point to hit")
         if point in (_BLACK_BAR, _WHITE_BAR):
@@ -240,7 +241,13 @@ class Board:
         def is_not_blocked(dist: int) -> bool:
             return 0 <= point + by_i * dist <= 25 and by_i * self.points[point + by_i * dist] >= -1
 
-        hitters_at = np.where(np.sign(self.points) == by_i)[0]
+        if only_legal and by == Color.BLACK and self.points[_BLACK_BAR] < 0:
+            hitters_at = np.array([_BLACK_BAR])
+        elif only_legal and by == Color.WHITE and self.points[_WHITE_BAR] > 0:
+            hitters_at = np.array([_WHITE_BAR])
+        else:
+            hitters_at = np.where(np.sign(self.points) == by_i)[0]
+
         dists = by_i * (hitters_at - point)
         options = 0
         for d1 in range(1, 6 + 1):

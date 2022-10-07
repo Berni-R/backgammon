@@ -106,6 +106,7 @@ class SimplePlayer(Player):
         # hit prob. * pips -> avoid own blots
         val = 0
         for p, pips_add in zip(blots_at, pips_add_if_hit):
+            # TODO: restrict to legal only / reduce impact of those, that cannot be hit because opponent must clear bar
             val += board.hit_prob(p, opponent) * pips_add
         val_tot -= val
         if verbose:
