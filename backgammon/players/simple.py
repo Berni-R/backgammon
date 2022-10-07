@@ -10,7 +10,24 @@ from ..rating import FIBSRating, INITIAL_RATING
 
 
 class SimplePlayer(Player):
-    """A player that plays by simple handwritten rules, but already quite reasonable."""
+    f"""A player that plays by simple hand-written rules, but already quite reasonable.
+
+    Args:
+        rating: (FIBSRating, float, int):
+                                    The (initial) rating for this player. Defaults to {INITIAL_RATING}.
+        doubling_th (float):        Player will double the stake, if they judge the winning probability to be higher
+                                    than this number. Conversely, accept a doubling if the winnings probability is
+                                    judged to be 1 - <doubling_th>.
+        eval_randomize (float):     Make the player play more random moves.
+                                    Adds a normallay distributed variable with the given standard deviation to the move
+                                    evaluation. This will reduce (except for very small numbers) the player's strength.
+                                    Emperically, it's playing strength will reduce as follows:
+        win_prob_randomize (float): Make doubling and taking doubles random.
+                                    Like `eval_randomize` this adds a normal random variable to the winning probability
+                                    with the given value as standard deviation.
+        blot_penalty (float):       Weight for the number of blots of own color to penelise the evaluation.
+        bear_off_bonus (float):     Weight for the number of born off checkers of own color to improve the evaluation.
+    """
 
     def __init__(
             self,

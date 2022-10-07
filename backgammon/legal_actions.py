@@ -1,4 +1,4 @@
-from typing import List, Set, Tuple, Union, Sequence, Optional, Iterator
+from typing import List, Set, Tuple, Any, Union, Sequence, Optional, Iterator
 from copy import copy
 import numpy as np
 from numpy.typing import ArrayLike
@@ -33,9 +33,24 @@ class Action:
     def copy(self) -> 'Action':
         return self.__copy__()
 
+    def __eq__(self, other: Any) -> bool:
+        return isinstance(other, Action) and (
+            len(self.moves) == len(other.moves)
+            and all(m1 == m2 for m1, m2 in zip(self.moves, other.moves))
+            and self.doubles == other.doubles
+            and self.takes == other.takes
+        )
+
+    def __hash__(self) -> int:
+        return hash(tuple(self.moves) + (self.doubles, self.takes))
+
     @property
     def is_dropping(self) -> bool:
         return self.takes is not None and not self.takes
+
+    @property
+    def dances(self) -> bool:
+        return len(self.moves) == 0 and (not self.doubles)
 
     def __repr__(self) -> str:
         r = f"Action({list(self.moves)}"

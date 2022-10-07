@@ -39,11 +39,16 @@ class Move(NamedTuple):
         return self.dst in (0, 25)
 
     def assert_consistent_data(self):
-        if not (isinstance(self.src, (int, np.int_)) and 0 <= self.src <= 25):
-            raise ValueError(f"`src` needs to be an integer in [0, 25], but is {self.src} ({type(self.src)}).")
-        if not (isinstance(self.dst, (int, np.int_)) and 0 <= self.dst <= 25):
-            raise ValueError(f"`dst` needs to be an integer in [0, 25], but is {self.dst} ({type(self.dst)}.")
+        if not isinstance(self.src, (int, np.int_)):
+            raise TypeError(f"`src` needs to be an integer, but is {self.src} ({type(self.src)}).")
+        if not isinstance(self.dst, (int, np.int_)):
+            raise TypeError(f"`dst` needs to be an integer, but is {self.dst} ({type(self.dst)}.")
         if not isinstance(self.hit, (bool, np.bool_)):
-            raise ValueError(f"`hit` needs to be a boolean value, but is {self.hit} ({type(self.hit)}).")
+            raise TypeError(f"`hit` needs to be a boolean value, but is {self.hit} ({type(self.hit)}).")
+
+        if not 0 <= self.src <= 25:
+            raise ValueError(f"`src` needs to be in [0, 25], but is {self.src}.")
+        if not 0 <= self.dst <= 25:
+            raise ValueError(f"`dst` needs to be in [0, 25], but is {self.dst}.")
         if self.hit and self.dst in (0, 25):
-            raise ValueError("impossible to hit when moving to home")
+            raise ValueError("impossible to hit when bearing off")

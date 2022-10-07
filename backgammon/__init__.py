@@ -9,9 +9,10 @@ from . import match
 
 # TODO: 1) write function to animate a Game instance somehow (with adjustable playback speed)
 # TODO: 2) write tests for (only) most important functions
-# TODO: 3) improve performance, esp. for action generation of double rolls
-# TODO: 4) Built player for a pytorch model - includes encoding of board
-# TODO: 5) Actually train this player in self-play with reinforcement learning
+# TODO: 3) build framework for tournaments, that can assign ratings / rankings to multiple players at once efficiently
+# TODO: 4) improve performance, esp. for action generation of double rolls
+# TODO: 5) built player for a pytorch model - includes encoding of board
+# TODO: 6) actually train this player in self-play with reinforcement learning
 
 from .core import Color, GameResult, IllegalMoveError, ImpossibleMoveError
 from .move import Move

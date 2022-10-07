@@ -30,13 +30,16 @@ class Board:
     def __repr__(self) -> str:
         def arr2str(arr):
             return "[" + ",".join(map(lambda n: f"{n:2d}", arr)) + "]"
-        r = f"State(\n" \
+        r = f"Board(\n" \
             f"  points        = {arr2str(self.points)},\n" \
-            f"  turn          = {self._turn},\n" \
+            f"  turn          = {str(self._turn)},\n" \
             f"  stake_pow     = {self._stake_pow},\n" \
-            f"  doubling_turn = {self._doubling_turn},\n" \
+            f"  doubling_turn = {str(self._doubling_turn)},\n" \
             f")"
         return r
+
+    def __str__(self) -> str:
+        return self.ascii_art(info=False)
 
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, Board) and (
@@ -177,7 +180,7 @@ class Board:
     def is_backgammon(self, looser: Color) -> bool:
         if looser is Color.NONE:
             raise ValueError("no looser given to determine whether it's backgammon")
-        if self.checkers_count(looser) == 15:
+        if self.checkers_count(looser) == 15:  # needs to be gammon at least
             return ((looser == Color.BLACK and self.checkers_before(7, Color.BLACK)) or
                     (looser == Color.WHITE and self.checkers_before(18, Color.WHITE)))
         return False
@@ -211,7 +214,7 @@ class Board:
             raise ValueError("need color to be WHITE or BLACK")
 
     def hit_prob(self, point: int, by: Optional[Color] = None) -> float:
-        """Calculate the probability by which the given point can be hit in the next move.
+        """Calculate the probability by which the given point can be hit in the next move, given it is legal.
 
         Args:
             point (int):    The point in question of being hit. This can be any point, also empty ones and those of the
@@ -222,6 +225,7 @@ class Board:
         Returns:
             p (float):      The probabilty by which the given point could be hit in the next move.
         """
+        # TODO: only count legal moves - since bearing off cannot hit, we only have to check for stones on bar
         if not 0 <= point <= 25:
             raise IndexError(f"{point} is not a valid point to hit")
         if point in (_BLACK_BAR, _WHITE_BAR):
