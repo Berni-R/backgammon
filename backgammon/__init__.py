@@ -4,9 +4,9 @@ from . import board
 from . import legal_actions
 from . import players
 from . import game
+from . import rating
 from . import match
 
-# TODO: 0) add rating system
 # TODO: 1) write function to animate a Game instance somehow (with adjustable playback speed)
 # TODO: 2) write tests for (only) most important functions
 # TODO: 3) improve performance, esp. for action generation of double rolls
@@ -25,4 +25,5 @@ from .legal_actions import (
 from .players import Player
 from .players import RandomPlayer, SimplePlayer
 from .game import roll_dice, Game
+from .rating import FIBSRating
 from .match import Match

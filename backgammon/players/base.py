@@ -1,19 +1,24 @@
 from abc import ABC, abstractmethod
+from typing import Union
 from numpy.typing import ArrayLike, NDArray
 import numpy as np
 
 from ..core import Color
 from ..board import Board
 from ..legal_actions import Action
+from ..rating import FIBSRating
 
 
 class Player(ABC):
+
+    def __init__(self, rating: Union[FIBSRating, float, int]):
+        self.rating = FIBSRating(rating) if isinstance(rating, (float, int)) else rating
 
     @property
     def class_name(self) -> str:
         return self.__class__.__name__
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         import inspect
 
         try:

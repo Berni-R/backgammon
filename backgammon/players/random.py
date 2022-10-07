@@ -1,14 +1,18 @@
+from typing import Union
 from numpy.typing import NDArray
 import numpy as np
 
 from ..board import Board
 from .base import Player
 from ..legal_actions import Action, build_legal_actions
+from ..rating import FIBSRating, INITIAL_RATING
 
 
 class RandomPlayer(Player):
 
-    def __init__(self, double_prob: float = 0.005, double_take_prob: float = 0.8):
+    def __init__(self, rating: Union[FIBSRating, float, int] = INITIAL_RATING, double_prob: float = 0.005,
+                 double_take_prob: float = 0.8):
+        super().__init__(rating)
         self.double_prob = double_prob
         self.double_take_prob = double_take_prob
 

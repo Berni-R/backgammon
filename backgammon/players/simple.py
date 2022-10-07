@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 from numpy.typing import NDArray
 import numpy as np
 
@@ -6,23 +6,29 @@ from ..core import Color
 from ..board import Board
 from .base import Player
 from ..legal_actions import Action, build_legal_actions, do_action, undo_action
+from ..rating import FIBSRating, INITIAL_RATING
 
 
 class SimplePlayer(Player):
-    """A player that plays by easy handwritten rules, but already quite reasonable."""
+    """A player that plays by simple handwritten rules, but already quite reasonable."""
 
     def __init__(
             self,
+            rating: Union[FIBSRating, float, int] = INITIAL_RATING,
             doubling_th: float = 0.8,
+            eval_randomize: float = 0.0,
+            win_prob_randomize: float = 0.0,
             blot_penalty: float = 0.1,
             bear_off_bonus: float = 1.0,
     ):
+        super().__init__(rating)
         self.doubling_th = doubling_th
+        self.eval_randomize = eval_randomize
+        self.win_prob_randomize = win_prob_randomize
         self.blot_penalty = blot_penalty
         self.bear_off_bonus = bear_off_bonus
 
-    @staticmethod
-    def est_win_prob(board: Board, viewpoint: Optional[Color] = None) -> float:
+    def est_win_prob(self, board: Board, viewpoint: Optional[Color] = None) -> float:
         """Estimate the winning probability (based on the pip count and empirical win rates of RandomPlayer)."""
         # this is only based on pip count - actual checker distribution (such as blots) is entirely ignored
         if viewpoint is None:
@@ -36,7 +42,12 @@ class SimplePlayer(Player):
         win_prob_white = (np.tanh((pips[0] - pips[1]) / scale) + 1) / 2
 
         win_prob = (1 - win_prob_white) if viewpoint == Color.BLACK else win_prob_white
-        return float(win_prob)
+        win_prob = float(win_prob)
+
+        if self.eval_randomize:
+            win_prob += np.random.normal(scale=self.win_prob_randomize)
+
+        return win_prob
 
     def eval_board(self, board: Board, viewpoint: Optional[Color] = None, verbose: bool = False) -> float:
         """Give the board some evaluation from the given viewpoint. Higher is better.
@@ -96,6 +107,9 @@ class SimplePlayer(Player):
         val_tot += val
         if verbose:
             print(f"bear off bonus: {val} -> {val_tot}")
+
+        if self.eval_randomize:
+            val_tot += np.random.normal(scale=self.eval_randomize)
 
         return val_tot
 
