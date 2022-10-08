@@ -67,14 +67,10 @@ class Board:
         # self._stake_pow = self._stake_pow
         self._doubling_turn = self._doubling_turn.other()
 
-    def flipped(self, copy: bool = True) -> 'Board':
-        return Board(
-            points=-self.points[::-1],
-            turn=self._turn.other(),
-            stake_pow=self._stake_pow,
-            doubling_turn=self._doubling_turn.other(),
-            copy=copy,
-        )
+    def flipped(self) -> 'Board':
+        copy = self.__copy__()
+        copy.flip()
+        return copy
 
     # TODO: type hints for slices and Co.
     def __getitem__(self, point: int) -> int:
