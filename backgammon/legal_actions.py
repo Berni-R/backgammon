@@ -1,4 +1,4 @@
-from typing import List, Set, Tuple, Any, Union, Sequence, Optional, Iterator
+from typing import Any, Sequence, Optional, Iterator, Union
 from copy import copy
 import numpy as np
 from numpy.typing import ArrayLike
@@ -75,7 +75,7 @@ class Action:
     def __iter__(self) -> Iterator[Move]:
         return iter(self.moves)
 
-    def __getitem__(self, item: Union[int, slice]) -> Union[Move, 'Action']:
+    def __getitem__(self, item: int | slice) -> Union[Move, 'Action']:
         if isinstance(item, int):
             return self.moves[item]
         elif isinstance(item, slice):
@@ -124,7 +124,7 @@ def build_legal_move(board: Board, src: int, pips: int) -> Move:
     return Move(src, dst, hit)
 
 
-def build_legal_moves(board: Board, pips: int) -> List[Move]:
+def build_legal_moves(board: Board, pips: int) -> list[Move]:
     if not 1 <= pips <= 6:
         raise ValueError(f"pips / dice number must be 1, 2, 3, 4, 5, or 6; got {pips}")
 
@@ -139,7 +139,7 @@ def build_legal_moves(board: Board, pips: int) -> List[Move]:
     return moves
 
 
-def is_legal_move(move: Move, board: Board, ret_reason: bool = False) -> Union[bool, Tuple[bool, str]]:
+def is_legal_move(move: Move, board: Board, ret_reason: bool = False) -> bool | tuple[bool, str]:
     try:
         build_legal_move(board, move.src, move.pips)
     except IllegalMoveError as e:
@@ -148,7 +148,7 @@ def is_legal_move(move: Move, board: Board, ret_reason: bool = False) -> Union[b
 
 
 def is_legal_action(action: Action, board: Board,
-                    ret_reason: bool = False, raise_except: bool = False) -> Union[bool, Tuple[bool, str]]:
+                    ret_reason: bool = False, raise_except: bool = False) -> bool | tuple[bool, str]:
     if action.doubles:
         if board.doubling_turn is not Color.NONE:
             if action.takes is None:
@@ -197,7 +197,7 @@ def undo_action(board: Board, action: Action):
             board.undo_move(move)
 
 
-def _legal_actions(board: Board, dice: ArrayLike) -> List[Action]:
+def _legal_actions(board: Board, dice: ArrayLike) -> list[Action]:
     """Does not include a potential doubling."""
     dice = np.array(dice, dtype=int)
     assert dice.ndim == 1
@@ -220,8 +220,8 @@ def _legal_actions(board: Board, dice: ArrayLike) -> List[Action]:
     return actions
 
 
-def _unique_actions(board: Board, actions: List[Action]) -> List[Action]:
-    final_boards: Set[int] = set()
+def _unique_actions(board: Board, actions: list[Action]) -> list[Action]:
+    final_boards: set[int] = set()
 
     u_actions = []
     for action in actions:
@@ -234,7 +234,7 @@ def _unique_actions(board: Board, actions: List[Action]) -> List[Action]:
     return u_actions
 
 
-def build_legal_actions(board: Board, dice: ArrayLike) -> List[Action]:
+def build_legal_actions(board: Board, dice: ArrayLike) -> list[Action]:
     """Does not include a potential doubling."""
     # TODO: update algo, since not efficient for double rolls, because of the many equivalent permutations
     dice = np.array(dice, dtype=int)

@@ -1,4 +1,4 @@
-from typing import Union, Any
+from typing import Any, Union
 from math import sqrt
 from numpy.typing import NDArray
 import numpy as np
@@ -8,7 +8,7 @@ INITIAL_RATING = 1500.0
 
 class FIBSRating:
 
-    def __init__(self, value: Union[float, int] = INITIAL_RATING, experience: int = 0, ramp_up: bool = True,
+    def __init__(self, value: float | int = INITIAL_RATING, experience: int = 0, ramp_up: bool = True,
                  fixed: bool = False):
         self.value = float(value)
         self.experience = experience
@@ -32,7 +32,7 @@ class FIBSRating:
         return self.value > float(other)
 
     def __eq__(self, other: Any) -> bool:
-        if isinstance(other, (FIBSRating, float, int)):
+        if isinstance(other, FIBSRating | float | int):
             return self.value == float(other)
         return False
 

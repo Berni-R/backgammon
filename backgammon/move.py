@@ -1,5 +1,5 @@
 import numpy as np
-from typing import NamedTuple, Union
+from typing import NamedTuple
 
 
 class Move(NamedTuple):
@@ -10,8 +10,8 @@ class Move(NamedTuple):
     def to_str(self, bar_off: bool = True, regular: bool = True) -> str:
         if regular and self.src < self.dst:
             return self.flipped().to_str(bar_off, regular=False)
-        src: Union[int, str] = self.src
-        dst: Union[int, str] = self.dst
+        src: int | str = self.src
+        dst: int | str = self.dst
         if bar_off:
             # it is impossible to move from off or to bar
             src = 'bar' if self.src in (0, 25) else src
@@ -39,11 +39,11 @@ class Move(NamedTuple):
         return self.dst in (0, 25)
 
     def assert_consistent_data(self):
-        if not isinstance(self.src, (int, np.int_)):
+        if not isinstance(self.src, int | np.int_):
             raise TypeError(f"`src` needs to be an integer, but is {self.src} ({type(self.src)}).")
-        if not isinstance(self.dst, (int, np.int_)):
+        if not isinstance(self.dst, int | np.int_):
             raise TypeError(f"`dst` needs to be an integer, but is {self.dst} ({type(self.dst)}.")
-        if not isinstance(self.hit, (bool, np.bool_)):
+        if not isinstance(self.hit, bool | np.bool_):
             raise TypeError(f"`hit` needs to be a boolean value, but is {self.hit} ({type(self.hit)}).")
 
         if not 0 <= self.src <= 25:

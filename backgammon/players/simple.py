@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional
 from numpy.typing import NDArray
 import numpy as np
 
@@ -31,7 +31,7 @@ class SimplePlayer(Player):
 
     def __init__(
             self,
-            rating: Union[FIBSRating, float, int] = INITIAL_RATING,
+            rating: FIBSRating | float | int = INITIAL_RATING,
             doubling_th: float = 0.8,
             eval_randomize: float = 0.0,
             win_prob_randomize: float = 0.0,

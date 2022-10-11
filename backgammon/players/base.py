@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Union
 from numpy.typing import ArrayLike, NDArray
 import numpy as np
 
@@ -11,8 +10,8 @@ from ..rating import FIBSRating
 
 class Player(ABC):
 
-    def __init__(self, rating: Union[FIBSRating, float, int]):
-        self.rating = FIBSRating(rating) if isinstance(rating, (float, int)) else rating
+    def __init__(self, rating: FIBSRating | float | int):
+        self.rating = FIBSRating(rating) if isinstance(rating, float | int) else rating
 
     @property
     def class_name(self) -> str:

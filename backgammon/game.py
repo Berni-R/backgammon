@@ -1,4 +1,4 @@
-from typing import Optional, List, Tuple
+from typing import Optional
 from numpy.typing import NDArray, ArrayLike
 from copy import deepcopy
 import numpy as np
@@ -13,7 +13,7 @@ def roll_dice() -> NDArray[np.int_]:
     return np.random.randint(1, 7, size=(2,))
 
 
-class History(List[Tuple[NDArray[np.int_], Action]]):
+class History(list[tuple[NDArray[np.int_], Action]]):
 
     def __repr__(self):
         return f"<History, len={len(self)}>"
@@ -99,7 +99,7 @@ class Game:
         _, action = self._history[-1]
         return action.doubles > 0 and action.takes is None
 
-    def do_turn(self, points: ArrayLike = (0, 0), match_ends_at: int = 1) -> Tuple[NDArray[np.int_], Action]:
+    def do_turn(self, points: ArrayLike = (0, 0), match_ends_at: int = 1) -> tuple[NDArray[np.int_], Action]:
         # need to first roll dice, because first roll needed to determine player to begin
         dice = self.roll_dice()
         player = self.white if self.board.turn == Color.WHITE else self.black

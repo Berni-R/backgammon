@@ -1,4 +1,4 @@
-from typing import Optional, Iterable, Callable, List, Dict, Any
+from typing import Optional, Iterable, Callable, Any
 import numpy as np
 from numpy.typing import NDArray
 from tqdm.auto import tqdm  # type: ignore
@@ -31,7 +31,7 @@ class Match:
         self.start_board = start_board
 
         self.points = np.array([0, 0])
-        self.games: List[Game] = []
+        self.games: list[Game] = []
         self.delta_rating: NDArray[np.int_] = np.zeros(2, int)
 
     def play_single_game(self, after_move: Iterable['MoveHook'] = ()) -> Game:
@@ -52,7 +52,7 @@ class Match:
             self,
             after_move: Iterable['MoveHook'] = (),
             after_game: Iterable['GameHook'] = (),
-            tqdm_args: Optional[Dict[str, Any]] = None,
+            tqdm_args: Optional[dict[str, Any]] = None,
     ):
         args = dict(unit='points', smoothing=0.05)
         if tqdm_args is not None:
