@@ -1,5 +1,5 @@
 from typing import Any, Union
-from math import sqrt
+from math import sqrt, log10
 from numpy.typing import NDArray
 import numpy as np
 
@@ -36,9 +36,22 @@ class FIBSRating:
             return self.value == float(other)
         return False
 
+    def __sub__(self, other: Union['FIBSRating', float, int]) -> float:
+        return self.value - float(other)
+
+    def __add__(self, other: Union['FIBSRating', float, int]) -> float:
+        return self.value + float(other)
+
     def win_prob(self, opponent: Union['FIBSRating', float, int], match_len: int) -> float:
         diff = self.value - float(opponent)
         return 1.0 / (1.0 + 10.0 ** (-diff * sqrt(match_len) / 2000.0))
+
+    @staticmethod
+    def diff_for_win_prob(p: float, match_len: int) -> float:
+        if p <= 0.0 or 1.0 <= p:
+            raise ValueError("win rate must be in (0.0, 1.0).")
+        diff = -2000.0 * log10(1.0 / p - 1.0) / sqrt(match_len)
+        return diff
 
     def ramp_up_mult(self) -> float:
         return max(1.0, 5.0 - self.experience / 100.0) if self.ramp_up else 1.0
@@ -46,10 +59,10 @@ class FIBSRating:
     @staticmethod
     def mutual_update(winner: 'FIBSRating', looser: 'FIBSRating', match_len: int) -> NDArray[np.int_]:
         s = 4.0 * sqrt(match_len)
-        p = winner.win_prob(looser, match_len)
+        p = looser.win_prob(winner, match_len)
 
-        d_winner = (1.0 - p) * s * winner.ramp_up_mult()
-        d_looser = p * s * winner.ramp_up_mult()
+        d_winner = p * s * winner.ramp_up_mult()
+        d_looser = p * s * looser.ramp_up_mult()
 
         if not winner.fixed:
             winner.value += d_winner
@@ -59,4 +72,4 @@ class FIBSRating:
         winner.experience += match_len
         looser.experience += match_len
 
-        return np.array([d_winner, d_looser])
+        return np.array([d_winner, -d_looser])
