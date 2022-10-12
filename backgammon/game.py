@@ -6,7 +6,7 @@ import numpy as np
 from .core import Color, GameResult
 from .board import Board
 from .players import Player
-from .legal_actions import Action, do_action, assert_legal_action
+from .moves.legal_actions import Action, do_action, assert_legal_action
 
 
 def roll_dice() -> NDArray[np.int_]:

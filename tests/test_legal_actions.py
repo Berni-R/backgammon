@@ -2,9 +2,9 @@ import pytest
 import numpy as np
 
 from backgammon.core import Color
-from backgammon.move import Move
+from backgammon.moves.move import Move
 from backgammon.board import Board
-from backgammon.legal_actions import Action, build_legal_actions, do_action, undo_action, is_legal_action
+from backgammon.moves.legal_actions import Action, build_legal_actions, do_action, undo_action, is_legal_action
 
 
 def test_build_legal_actions():

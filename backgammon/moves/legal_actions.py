@@ -2,9 +2,9 @@ from typing import Any, Sequence, Optional, Iterator, Union
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from .core import Color, IllegalMoveError
+from ..core import Color, IllegalMoveError
 from .move import Move
-from .board import Board
+from ..board import Board
 from .move_legal import assert_legal_move, build_legal_move
 
 

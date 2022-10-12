@@ -4,7 +4,7 @@ import numpy as np
 
 from ..core import Color
 from ..board import Board
-from ..legal_actions import Action
+from ..moves.legal_actions import Action
 from ..rating import FIBSRating
 
 

@@ -1,6 +1,6 @@
-from .core import Color, ImpossibleMoveError, IllegalMoveError
+from ..core import Color, ImpossibleMoveError, IllegalMoveError
 from .move import Move
-from .board import Board
+from ..board import Board
 
 
 def assert_legal_move(move: Move, board: Board, pseudolegal: bool = False):

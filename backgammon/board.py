@@ -3,7 +3,7 @@ from numpy.typing import ArrayLike, NDArray
 import numpy as np
 
 from .core import Color, _COLOR_SYMBOLS, _START_POINTS, GameResult, _WHITE_BAR, _BLACK_BAR
-from .move import Move
+from .moves.move import Move
 
 
 class Board:

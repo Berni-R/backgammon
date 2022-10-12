@@ -1,6 +1,6 @@
 import pytest
 
-from backgammon.move import Move
+from backgammon.moves.move import Move
 
 
 def test_move_str_repr():

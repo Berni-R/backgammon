@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 
 from backgammon.core import Color
-from backgammon.move import Move
+from backgammon.moves.move import Move
 from backgammon.board import Board
 
 

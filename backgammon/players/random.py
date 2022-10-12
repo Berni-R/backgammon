@@ -3,7 +3,7 @@ import numpy as np
 
 from ..board import Board
 from .base import Player
-from ..legal_actions import Action, build_legal_actions
+from ..moves.legal_actions import Action, build_legal_actions
 from ..rating import FIBSRating, INITIAL_RATING
 
 

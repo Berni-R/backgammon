@@ -5,7 +5,7 @@ import numpy as np
 from ..core import Color
 from ..board import Board
 from .base import Player
-from ..legal_actions import Action, build_legal_actions, do_action, undo_action
+from ..moves.legal_actions import Action, build_legal_actions, do_action, undo_action
 from ..rating import FIBSRating, INITIAL_RATING
 
 
