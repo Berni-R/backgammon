@@ -66,6 +66,28 @@ def test_build_legal_actions():
         assert action in actions
     assert Action([Move(5, 9), Move(9, 13), Move(11, 15), Move(11, 15)]) not in actions
 
+    for color in [Color.BLACK, Color.WHITE]:
+        board = Board(
+            points=[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0],
+            turn=color,
+        )
+        actions = build_legal_actions(board, [5, 2])
+        assert set(actions) == {Action([Move(1, 0)])} or set(actions) == {Action([Move(24, 25)])}
+
+    board = Board(
+        points=[0, -2, 1, 2, 0, -3, -1, 0, 0, -1, 0, 0, 0, 1, -1, 0, 0, 0, -1, 0, -1, 0, 0, 0, 0, 0],
+        turn=Color.BLACK,
+    )
+    actions = build_legal_actions(board, [2, 2])
+    assert len(actions) == 119
+
+    board = Board(
+        points=[0, -2, 1, 2, 0, -3, -1, 0, 0, -1, 0, 0, 0, 1, -1, 0, 0, 0, -1, 0, -1, 0, 0, 0, 0, 0],
+        turn=Color.WHITE,
+    )
+    actions = build_legal_actions(board, [6, 2])
+    assert set(actions) == {Action([Move(13, 7)]), Action([Move(13, 11)])}
+
 
 def test_do_undo_actions():
     def check_action(board_: Board, action_: Action):

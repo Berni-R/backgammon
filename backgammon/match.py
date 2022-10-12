@@ -34,8 +34,11 @@ class Match:
         self.games: list[Game] = []
         self.delta_rating: NDArray[np.int_] = np.zeros(2, int)
 
+        self._current_game: Optional[Game] = None  # useful for debugging
+
     def play_single_game(self, after_move: Iterable['MoveHook'] = ()) -> Game:
         game = Game(black=self.black, white=self.white, start_board=self.start_board)
+        self._current_game = game
         while not game.game_over():
             dice, action = game.do_turn(self.points, self.n_points)
             if any([hook(game, action) for hook in after_move]):
@@ -45,6 +48,8 @@ class Match:
         res = game.get_result()
         stake = 0 if res.winner is Color.NONE else res.stake
         self.points[(res.winner + 1) // 2] += stake
+
+        self._current_game = None
 
         return game
 

@@ -190,13 +190,20 @@ def build_legal_actions(board: Board, dice: ArrayLike) -> list[Action]:
         raise ValueError("It's no ones turn, cannot build legal actions.")
 
     if dice[0] == dice[1]:
-        actions = _legal_actions(board, [dice[0]] * 4)
+        # double roll
+        for n in [4, 3, 2, 1]:
+            actions = _legal_actions(board, [dice[0]] * n)
+            if len(actions):
+                break
     else:
+        # rolled two different numbers
         actions = _legal_actions(board, list(dice)) + _legal_actions(board, list(dice[::-1]))
-        # TODO: is this necessary
-        actions = _unique_actions(board, actions)
+        if len(actions) == 0:
+            actions = _legal_actions(board, [dice[0]]) + _legal_actions(board, [dice[1]])
 
     if len(actions) == 0:
         actions = [Action()]
+    else:
+        actions = _unique_actions(board, actions)
 
     return actions
