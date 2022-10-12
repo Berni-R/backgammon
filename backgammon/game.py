@@ -6,7 +6,7 @@ import numpy as np
 from .core import Color, GameResult
 from .board import Board
 from .players import Player
-from .legal_actions import Action, do_action, is_legal_action
+from .legal_actions import Action, do_action, assert_legal_action
 
 
 def roll_dice() -> NDArray[np.int_]:
@@ -107,7 +107,7 @@ class Game:
             action = player.respond_to_doubling(self.board)
         else:
             action = player.play(self.board, dice, points, match_ends_at)
-        is_legal_action(action, self.board, raise_except=True)
+        assert_legal_action(action, self.board)
         do_action(self.board, action)
         self._history.append((dice.copy(), action.copy()))
         return dice, action

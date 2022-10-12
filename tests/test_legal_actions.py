@@ -21,11 +21,11 @@ def test_build_legal_actions():
         Action([Move(13, 7), Move(3, 1, hit=True)]),
         Action([Move(13, 7), Move(4, 2)]),
         Action([Move(13, 7), Move(7, 5)]),
-        Action([Move(13, 7), Move(24, 22)]),
-        Action([Move(24, 18, hit=True), Move(3, 1, hit=True)]),
-        Action([Move(24, 18, hit=True), Move(4, 2)]),
         Action([Move(24, 18, hit=True), Move(13, 11)]),
         Action([Move(24, 18, hit=True), Move(18, 16)]),
+        Action([Move(24, 18, hit=True), Move(3, 1, hit=True)]),
+        Action([Move(24, 18, hit=True), Move(4, 2)]),
+        Action([Move(24, 22), Move(13, 7)]),
         Action([Move(24, 22), Move(22, 16)]),
     }
 
@@ -43,7 +43,7 @@ def test_build_legal_actions():
     actions = build_legal_actions(board, [1, 2])
     assert len(actions) == 72
     assert Action([Move(5, 6), Move(8, 10, hit=True)]) in actions
-    assert Action([Move(18, 19), Move(5, 7)]) in actions
+    assert Action([Move(5, 7), Move(18, 19)]) in actions
     assert Action([Move(25, 24), Move(20, 18, hit=True)]) not in actions
     assert Action([], 2) not in actions
     assert Action([], 2, takes=True) not in actions
