@@ -5,6 +5,7 @@ from . import players
 from . import game
 from . import rating
 from . import match
+from . import tournament
 
 # TODO: 1) write function to animate a Game instance somehow (with adjustable playback speed)
 # TODO: 2) write tests for (only) most important functions
@@ -27,3 +28,4 @@ from .players import RandomPlayer, SimplePlayer
 from .game import roll_dice, Game
 from .rating import FIBSRating
 from .match import Match
+from .tournament import Tournament

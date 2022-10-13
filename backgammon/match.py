@@ -57,9 +57,10 @@ class Match:
             self,
             after_move: Iterable['MoveHook'] = (),
             after_game: Iterable['GameHook'] = (),
+            tqdm_disable: bool = False,
             tqdm_args: Optional[dict[str, Any]] = None,
     ):
-        args = dict(unit='points', smoothing=0.05)
+        args = dict(unit='points', smoothing=0.05, disable=tqdm_disable)
         if tqdm_args is not None:
             args.update(tqdm_args)
 

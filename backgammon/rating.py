@@ -1,5 +1,5 @@
 from typing import Any, Union
-from math import sqrt, log10
+from math import sqrt
 from numpy.typing import NDArray
 import numpy as np
 
@@ -43,14 +43,17 @@ class FIBSRating:
         return self.value + float(other)
 
     def win_prob(self, opponent: Union['FIBSRating', float, int], match_len: int) -> float:
-        diff = self.value - float(opponent)
+        return float(self.win_prob_for_diff(self.value - float(opponent), match_len=match_len))
+
+    @staticmethod
+    def win_prob_for_diff(diff: float | NDArray, match_len: int) -> float | NDArray:
         return 1.0 / (1.0 + 10.0 ** (-diff * sqrt(match_len) / 2000.0))
 
     @staticmethod
-    def diff_for_win_prob(p: float, match_len: int) -> float:
+    def diff_for_win_prob(p: float | NDArray, match_len: int) -> NDArray[np.float_]:
         if p <= 0.0 or 1.0 <= p:
             raise ValueError("win rate must be in (0.0, 1.0).")
-        diff = -2000.0 * log10(1.0 / p - 1.0) / sqrt(match_len)
+        diff = -2000.0 * np.log10(1.0 / p - 1.0) / sqrt(match_len)
         return diff
 
     def ramp_up_mult(self) -> float:
