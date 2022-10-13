@@ -12,6 +12,33 @@ from ..rating import FIBSRating, INITIAL_RATING
 class SimplePlayer(Player):
     f"""A player that plays by simple hand-written rules, but already quite reasonable.
 
+    A strong impact on performance will be from `eval_randomize`. An experiment with random match lengths of 1, 3, 5, 7
+    lead to the following relative ratings:
+
+        player               | rating
+       ----------------------|--------
+        eval_randomize =   0 |   2359
+        eval_randomize =   1 |   2276
+        eval_randomize =   2 |   2127
+        eval_randomize =   3 |   2027
+        eval_randomize =   5 |   1900
+        eval_randomize =  10 |   1637
+        eval_randomize =  15 |   1467
+        eval_randomize =  20 |   1328
+        eval_randomize =  50 |   1126
+        eval_randomize =  70 |   1013
+        eval_randomize = 100 |    882
+        eval_randomize = 130 |    803
+        eval_randomize = 200 |    703
+        eval_randomize = 300 |    609
+        RandomPlayer()       |   <300
+
+    Note the roughly log-linear decrease in rating from rouhgly `eval_randomize = 2` on. A log-linear fit yields the
+    rating estimate 2350 - 217 * log2(eval_randomize), i.e. a decrease by a good 200 points for each doubling of the
+    eval_randomize parameter.
+    This also implies that the (default) RandomPlayer is mroe than 2000 rating points weaker than the (default)
+    SimplePlayer.
+
     Args:
         rating: (FIBSRating, float, int):
                                     The (initial) rating for this player. Defaults to {INITIAL_RATING}.
