@@ -309,7 +309,7 @@ class Board:
         symbols = np.array(syms)
 
         def build_half(points: NDArray[np.int_], bottom: bool, bar: int):
-            points = np.concatenate([points[:6], [bar], points[6:]])
+            points = np.concatenate([points[:6], np.array([bar]), points[6:]])
 
             rows = []
             for i in range(4):

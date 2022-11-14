@@ -6,42 +6,38 @@ from ..core import Color
 from ..board import Board
 from .base import Player
 from ..moves.legal_actions import Action, build_legal_actions, do_action, undo_action
-from ..rating import FIBSRating, INITIAL_RATING
 
 
 class SimplePlayer(Player):
-    f"""A player that plays by simple hand-written rules, but already quite reasonable.
+    """A player that plays by simple handwritten rules, but already quite reasonable.
 
     A strong impact on performance will be from `eval_randomize`. An experiment with random match lengths of 1, 3, 5, 7
-    lead to the following relative ratings:
+    lead to the following relative Glicko-2 ratings (rating devations are between 60 and 65):
 
-        player               | rating
-       ----------------------|--------
-        eval_randomize =   0 |   2359
-        eval_randomize =   1 |   2276
-        eval_randomize =   2 |   2127
-        eval_randomize =   3 |   2027
-        eval_randomize =   5 |   1900
-        eval_randomize =  10 |   1637
-        eval_randomize =  15 |   1467
-        eval_randomize =  20 |   1328
-        eval_randomize =  50 |   1126
-        eval_randomize =  70 |   1013
-        eval_randomize = 100 |    882
-        eval_randomize = 130 |    803
-        eval_randomize = 200 |    703
-        eval_randomize = 300 |    609
-        RandomPlayer()       |   <300
+        player               | up to 1 |   3  |   5  |   7
+       ----------------------|---------|------|------|------
+        eval_randomize = 0   |   2000  | 2000 | 2000 | 2000
+        eval_randomize = 1   |   1961  | 1924 | 1931 | 2059
+        eval_randomize = 2   |   1861  | 1832 | 1871 | 1913
+        eval_randomize = 4   |   1831  | 1712 | 1753 | 1767
+        eval_randomize = 7   |   1696  | 1587 | 1623 | 1674
+        eval_randomize = 13  |   1553  | 1444 | 1441 | 1527
+        eval_randomize = 22  |   1478  | 1321 | 1312 | 1289
+        eval_randomize = 38  |   1336  | 1138 | 1193 | 1163
+        eval_randomize = 65  |   1273  | 1043 | 1051 | 1052
+        eval_randomize = 110 |   1214  |  930 |  970 |  931
+        eval_randomize = 186 |   1182  |  930 |  950 |  911
+        eval_randomize = 315 |   1179  |  894 |  920 |  803
+        RandomPlayer()       |   1085  |  801 |  559 |  742
 
-    Note the roughly log-linear decrease in rating from rouhgly `eval_randomize = 2` on. A log-linear fit yields the
-    rating estimate 2350 - 217 * log2(eval_randomize), i.e. a decrease by a good 200 points for each doubling of the
-    eval_randomize parameter.
-    This also implies that the (default) RandomPlayer is mroe than 2000 rating points weaker than the (default)
-    SimplePlayer.
+    Note the roughly log-linear decrease in rating with `eval_randomize ` (in the range [2, 300] at least).
+    Furthermore, this descrese itself seems to scale with roughly n^0.137, where n is the match length. So, in our case
+    this is not the n^(1/2) that the FIBS rating system employs.
+    A fit to the empirical data yields the rating estimate 2000 - 117 * n^0.137 * log2(eval_randomize).
+    The above table also implies that the (default) RandomPlayer is about 1000 rating points weaker than the (default)
+    SimplePlayer for a single points match (and more for longer games).
 
     Args:
-        rating: (FIBSRating, float, int):
-                                    The (initial) rating for this player. Defaults to {INITIAL_RATING}.
         doubling_th (float):        Player will double the stake, if they judge the winning probability to be higher
                                     than this number. Conversely, accept a doubling if the winnings probability is
                                     judged to be 1 - <doubling_th>.
@@ -58,14 +54,13 @@ class SimplePlayer(Player):
 
     def __init__(
             self,
-            rating: FIBSRating | float | int = INITIAL_RATING,
             doubling_th: float = 0.8,
             eval_randomize: float = 0.0,
             win_prob_randomize: float = 0.0,
             blot_penalty: float = 0.1,
             bear_off_bonus: float = 1.0,
     ):
-        super().__init__(rating)
+        super().__init__()
         self.doubling_th = doubling_th
         self.eval_randomize = eval_randomize
         self.win_prob_randomize = win_prob_randomize

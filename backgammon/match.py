@@ -8,7 +8,6 @@ from .board import Board
 from .moves.legal_actions import Action
 from .game import Game
 from .players import Player
-from .rating import FIBSRating
 
 MoveHook = Callable[[Game, Action], bool]
 GameHook = Callable[[Game], bool]
@@ -21,18 +20,15 @@ class Match:
             black: Player,
             white: Player,
             n_points: int = 1,
-            rated: bool = True,
             start_board: Optional[Board] = None,
     ):
         self.black = black
         self.white = white
         self.n_points = n_points
-        self.rated = rated
         self.start_board = start_board
 
         self.points = np.array([0, 0])
         self.games: list[Game] = []
-        self.delta_rating: NDArray[np.int_] = np.zeros(2, int)
 
         self._current_game: Optional[Game] = None  # useful for debugging
 
@@ -77,12 +73,6 @@ class Match:
 
                 if any([hook(game) for hook in after_game]):
                     break
-
-        if self.rated:
-            if self.points[0] == self.points[1]:
-                raise RuntimeError("Both players have the same number of points at the end of the match!")
-            looser, winner = np.array([self.black, self.white])[np.argsort(self.points)]
-            self.delta_rating = FIBSRating.mutual_update(winner.rating, looser.rating, self.n_points)
 
     def get_num_wins(self) -> NDArray[np.int_]:
         winners = [[game.winner() == Color.BLACK, game.winner() == Color.WHITE] for game in self.games]

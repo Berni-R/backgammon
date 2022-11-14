@@ -5,13 +5,12 @@ import numpy as np
 from ..core import Color
 from ..board import Board
 from ..moves.legal_actions import Action
-from ..rating import FIBSRating
 
 
 class Player(ABC):
 
-    def __init__(self, rating: FIBSRating | float | int):
-        self.rating = FIBSRating(rating) if isinstance(rating, float | int) else rating
+    def __init__(self):
+        pass
 
     @property
     def class_name(self) -> str:
@@ -30,7 +29,7 @@ class Player(ABC):
         except AttributeError:
             attrs = ["..."]
 
-        return f"{self.__class__.__name__}({', '.join(attrs)})"
+        return f"{self.class_name}({', '.join(attrs)})"
 
     @staticmethod
     def _to_nparr_2int(dice: ArrayLike) -> NDArray[np.int_]:

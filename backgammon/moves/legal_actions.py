@@ -135,7 +135,7 @@ def undo_action(board: Board, action: Action):
 
 def _legal_actions(board: Board, dice: Sequence, src_lim: Optional[int] = None) -> list[Action]:
     """Does not include a potential doubling."""
-    sources: NDArray | list = np.where(np.sign(board.points) == board.turn)[0]
+    sources: NDArray | list = np.where(np.sign(board.points) == np.array(board.turn))[0]
 
     # avoid equivalent multiplications
     if board.turn is Color.WHITE:
