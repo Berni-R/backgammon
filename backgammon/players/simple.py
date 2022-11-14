@@ -11,29 +11,31 @@ from ..moves.legal_actions import Action, build_legal_actions, do_action, undo_a
 class SimplePlayer(Player):
     """A player that plays by simple handwritten rules, but already quite reasonable.
 
-    A strong impact on performance will be from `eval_randomize`. An experiment with random match lengths of 1, 3, 5, 7
-    lead to the following relative Glicko-2 ratings (rating devations are between 60 and 65):
+    A strong impact on performance will be from `eval_randomize`. An experiment with match lengths of 1, 3, 5, 7 lead to
+    the following relative Glicko-2 ratings (rating devations are between 60 and 65):
 
-        player               | up to 1 |   3  |   5  |   7
-       ----------------------|---------|------|------|------
-        eval_randomize = 0   |   2000  | 2000 | 2000 | 2000
-        eval_randomize = 1   |   1961  | 1924 | 1931 | 2059
-        eval_randomize = 2   |   1861  | 1832 | 1871 | 1913
-        eval_randomize = 4   |   1831  | 1712 | 1753 | 1767
-        eval_randomize = 7   |   1696  | 1587 | 1623 | 1674
-        eval_randomize = 13  |   1553  | 1444 | 1441 | 1527
-        eval_randomize = 22  |   1478  | 1321 | 1312 | 1289
-        eval_randomize = 38  |   1336  | 1138 | 1193 | 1163
-        eval_randomize = 65  |   1273  | 1043 | 1051 | 1052
-        eval_randomize = 110 |   1214  |  930 |  970 |  931
-        eval_randomize = 186 |   1182  |  930 |  950 |  911
-        eval_randomize = 315 |   1179  |  894 |  920 |  803
-        RandomPlayer()       |   1085  |  801 |  559 |  742
+        player               | up to 1 |   3  |   5  |  7 points
+       ----------------------|---------|------|------|-----------
+        eval_randomize = 0   |   2000  | 2000 | 2000 |    2000
+        eval_randomize = 1   |   2031  | 1951 | 1840 |    1795
+        eval_randomize = 2   |   1977  | 1940 | 1822 |    1766
+        eval_randomize = 4   |   1869  | 1805 | 1664 |    1562
+        eval_randomize = 7   |   1769  | 1577 | 1471 |    1400
+        eval_randomize = 13  |   1547  | 1394 | 1323 |    1328
+        eval_randomize = 22  |   1436  | 1221 | 1156 |    1069
+        eval_randomize = 38  |   1289  | 1006 | 1015 |     981
+        eval_randomize = 65  |   1256  |  924 |  914 |     803
+        eval_randomize = 110 |   1124  |  828 |  766 |     697
+        eval_randomize = 186 |   1140  |  773 |  671 |     594
+        eval_randomize = 315 |   1136  |  763 |  639 |     585
+        RandomPlayer()       |   1053  |  655 |  527 |     498
 
-    Note the roughly log-linear decrease in rating with `eval_randomize ` (in the range [2, 300] at least).
-    Furthermore, this descrese itself seems to scale with roughly n^0.137, where n is the match length. So, in our case
-    this is not the n^(1/2) that the FIBS rating system employs.
-    A fit to the empirical data yields the rating estimate 2000 - 117 * n^0.137 * log2(eval_randomize).
+    Note the roughly log-linear decrease in rating with `eval_randomize `.
+    Furthermore, this descrese itself seems to scale with roughly n^(1/4), where n is the match length. So, in our case
+    this is not the n^(1/2) that the FIBS rating system employs. (We do not simply have n games to win, but doubling
+    strategies play an important role, too.)
+    A fit to empirical data yields the rating estimate (2060+-15) - (136+-3) * n^(0.23+-0.01) * log2(eval_randomize),
+    as long as eval_randomize >= 2 and the estiamte is >~ 750.
     The above table also implies that the (default) RandomPlayer is about 1000 rating points weaker than the (default)
     SimplePlayer for a single points match (and more for longer games).
 
