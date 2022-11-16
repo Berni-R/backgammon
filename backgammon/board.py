@@ -1,8 +1,9 @@
 from typing import Sequence, Optional, Any, overload
 from numpy.typing import ArrayLike, NDArray
+from math import log2
 import numpy as np
 
-from .core import Color, _COLOR_SYMBOLS, _START_POINTS, GameResult, _WHITE_BAR, _BLACK_BAR
+from .core import Color, WinType, _COLOR_SYMBOLS, _START_POINTS, GameResult, _WHITE_BAR, _BLACK_BAR
 from .moves.move import Move
 
 
@@ -39,7 +40,7 @@ class Board:
         return r
 
     def __str__(self) -> str:
-        return self.ascii_art(info=False)
+        return self.ascii_art(info=False, swap_ints=False)
 
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, Board) and (
@@ -119,7 +120,7 @@ class Board:
             raise TypeError(f"can only set stake to type int, got {type(stake)}")
         if stake <= 0:
             raise ValueError(f"stake needs to be positive, got {stake}")
-        stake_pow = int(np.log2(stake))
+        stake_pow = int(log2(stake))
         if 2 ** stake_pow != stake:
             raise ValueError(f"stake needs to be a power of 2, got {stake}")
         self._stake_pow = stake_pow
@@ -168,27 +169,22 @@ class Board:
         else:
             return Color.NONE
 
-    def is_gammon(self, looser: Color) -> bool:
+    def win_type(self, looser: Color) -> WinType:
         if looser is Color.NONE:
-            raise ValueError("no looser given to determine whether it's gammon")
-        return self.checkers_count(looser) == 15
-
-    def is_backgammon(self, looser: Color) -> bool:
-        if looser is Color.NONE:
-            raise ValueError("no looser given to determine whether it's backgammon")
-        if self.checkers_count(looser) == 15:  # needs to be gammon at least
-            return ((looser == Color.BLACK and self.checkers_before(7, Color.BLACK)) or
-                    (looser == Color.WHITE and self.checkers_before(18, Color.WHITE)))
-        return False
+            return WinType.NORMAL
+        if self.checkers_count(looser) < 15:
+            return WinType.NORMAL
+        if (
+                (looser == Color.BLACK and self.checkers_before(7, Color.BLACK)) or
+                (looser == Color.WHITE and self.checkers_before(18, Color.WHITE))
+        ):
+            return WinType.BACKGAMMON
+        return WinType.GAMMON
 
     def result(self) -> GameResult:
         winner = self.winner()
-        gammon, backgammon = False, False
-        if winner is not Color.NONE:
-            looser = winner.other()
-            gammon = self.is_gammon(looser)
-            backgammon = self.is_backgammon(looser)
-        return GameResult(winner, 2 ** self._stake_pow, gammon, backgammon)
+        wintype = self.win_type(winner.other())
+        return GameResult(winner, 2 ** self._stake_pow, wintype)
 
     def checkers_before(self, point: int, color: Color) -> bool:
         if color == Color.WHITE:
@@ -302,7 +298,7 @@ class Board:
     def show(self, info: bool = True, syms: Sequence[str] = _COLOR_SYMBOLS, **kwargs):
         print(self.ascii_art(info=info, syms=syms), **kwargs)
 
-    def ascii_art(self, info: bool = True, syms: Sequence[str] = _COLOR_SYMBOLS) -> str:
+    def ascii_art(self, info: bool = True, swap_ints: bool = True, syms: Sequence[str] = _COLOR_SYMBOLS) -> str:
         assert len(syms) == 3
         assert all(isinstance(s, str) for s in syms)
         assert all(len(s) == 1 for s in syms)
@@ -337,14 +333,14 @@ class Board:
 
             return '\n'.join(rows)
 
-        if self._turn == Color.BLACK:
+        if swap_ints and self._turn == Color.BLACK:
             s = " +-12-11-10--9--8--7--+---+--6--5--4--3--2--1--+\n"
         else:
             s = " +-13-14-15-16-17-18--+---+-19-20-21-22-23-24--+\n"
         s += build_half(self.points[13:25], False, self.points[_WHITE_BAR])
         s += "\n |                    |   |                    |\n"
         s += build_half(self.points[1:13], True, self.points[_BLACK_BAR])
-        if self._turn == Color.BLACK:
+        if swap_ints and self._turn == Color.BLACK:
             s += "\n +-13-14-15-16-17-18--+---+-19-20-21-22-23-24--+\n"
         else:
             s += "\n +-12-11-10--9--8--7--+---+--6--5--4--3--2--1--+\n"

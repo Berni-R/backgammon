@@ -3,14 +3,10 @@ from numpy.typing import NDArray, ArrayLike
 from copy import deepcopy
 import numpy as np
 
-from .core import Color, GameResult
+from .core import Color, GameResult, roll_dice
 from .board import Board
 from .players import Player
-from .moves.legal_actions import Action, do_action, assert_legal_action
-
-
-def roll_dice() -> NDArray[np.int_]:
-    return np.random.randint(1, 7, size=(2,))
+from .actions import Doubling, Action, do_action, assert_legal_action
 
 
 class History(list[tuple[NDArray[np.int_], Action]]):
@@ -21,10 +17,11 @@ class History(list[tuple[NDArray[np.int_], Action]]):
     def show(self, **kwargs):
         ply = 0
         for dice, action in self:
-            if action.doubles:
-                act = f"{str(action):33s}"
-            else:
+            if action.doubling == Doubling.NO:
                 act = f"{dice[0]}-{dice[1]}: {str(action):28s}"
+            else:
+                act = f"{action.to_str():33s}"
+
             if ply % 2 == 0:
                 print(f"{ply // 2 + 1:3d}) {act}", end=' ', **kwargs)
             else:
@@ -53,7 +50,7 @@ class Game:
         if len(self._history) == 0:
             return False
         _, action = self._history[-1]
-        return action.is_dropping
+        return action.doubling == Doubling.DROP
 
     def game_over(self) -> bool:
         return self.resigned() or self.board.game_over()
@@ -69,8 +66,7 @@ class Game:
             return GameResult(
                 winner=winner,
                 doubling_cube=self.board.stake,
-                # gammon=self.board.is_gammon(winner.other()),
-                # backgammon=self.board.is_backgammon(winner.other()),
+                wintype=self.board.win_type(winner.other()),
             )
         else:
             return self.board.result()
@@ -97,7 +93,7 @@ class Game:
         if len(self._history) == 0:
             return False
         _, action = self._history[-1]
-        return action.doubles > 0 and action.takes is None
+        return action.doubling == Doubling.DOUBLE
 
     def do_turn(self, points: ArrayLike = (0, 0), match_ends_at: int = 1) -> tuple[NDArray[np.int_], Action]:
         # need to first roll dice, because first roll needed to determine player to begin

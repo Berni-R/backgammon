@@ -4,7 +4,7 @@ import numpy as np
 
 from ..core import Color
 from ..board import Board
-from ..moves.legal_actions import Action
+from ..actions import Doubling, Action
 
 
 class Player(ABC):
@@ -51,8 +51,11 @@ class Player(ABC):
 
     def respond_to_doubling(self, board: Board, points: ArrayLike = (0, 0), match_ends_at: int = 1) -> Action:
         points = self._to_nparr_2int(points)
-        # make sure, that `takes` is an actual `bool` and not `np.bool_`
-        return Action([], board.stake * 2, takes=bool(self._will_take_doubling(board, points, match_ends_at)))
+        if self._will_take_doubling(board, points, match_ends_at):
+            doubling = Doubling.TAKE
+        else:
+            doubling = Doubling.DROP
+        return Action([], doubling)
 
     def play(self, board: Board, dice: ArrayLike, points: ArrayLike = (0, 0), match_ends_at: int = 1):
         dice = Player._to_nparr_2int(dice)
@@ -60,6 +63,6 @@ class Player(ABC):
 
         if board.doubling_turn is Color.NONE or board.turn == board.doubling_turn:
             if self._will_double(board, points, match_ends_at):
-                return Action([], board.stake * 2)
+                return Action([], Doubling.DOUBLE)
 
         return self._choose_action(board, dice)

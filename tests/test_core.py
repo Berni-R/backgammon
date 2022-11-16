@@ -1,4 +1,4 @@
-from backgammon.core import Color, IllegalMoveError, ImpossibleMoveError, GameResult
+from backgammon.core import Color, roll_dice, WinType, IllegalMoveError, ImpossibleMoveError, GameResult
 
 
 def test_color():
@@ -12,6 +12,13 @@ def test_color():
     assert Color.NONE.other() == Color.NONE
 
 
+def test_roll_dice():
+    for _ in range(1000):
+        dice = roll_dice()
+        assert dice.shape == (2,)
+        assert all(1 <= dice) and all(dice <= 6)
+
+
 def test_move_exceptions():
     assert isinstance(IllegalMoveError(), Exception)
     assert isinstance(ImpossibleMoveError(), IllegalMoveError)
@@ -22,8 +29,8 @@ def test_game_results():
         res = GameResult(doubling_cube=2**i)
         assert res.stake == 2**i
 
-        res = GameResult(doubling_cube=2**i, gammon=True)
+        res = GameResult(doubling_cube=2**i, wintype=WinType.GAMMON)
         assert res.stake == 2 * 2**i
 
-        res = GameResult(doubling_cube=2**i, gammon=True, backgammon=True)
+        res = GameResult(doubling_cube=2**i, wintype=WinType.BACKGAMMON)
         assert res.stake == 3 * 2**i

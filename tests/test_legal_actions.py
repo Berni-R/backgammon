@@ -4,7 +4,7 @@ import numpy as np
 from backgammon.core import Color
 from backgammon.moves.move import Move
 from backgammon.board import Board
-from backgammon.moves.legal_actions import Action, build_legal_actions, do_action, undo_action, is_legal_action
+from backgammon.actions import Doubling, Action, build_legal_actions, do_action, undo_action, is_legal_action
 
 
 def test_build_legal_actions():
@@ -45,8 +45,8 @@ def test_build_legal_actions():
     assert Action([Move(5, 6), Move(8, 10, hit=True)]) in actions
     assert Action([Move(5, 7), Move(18, 19)]) in actions
     assert Action([Move(25, 24), Move(20, 18, hit=True)]) not in actions
-    assert Action([], 2) not in actions
-    assert Action([], 2, takes=True) not in actions
+    assert Action([], Doubling.DOUBLE) not in actions
+    assert Action([], Doubling.TAKE) not in actions
 
     board = Board(
         points=[-1, 1, 1, -2, -1, -1, 1, 1, 2, 0, 1, -2, 1, -2, 1, 0, -2, 2, -2, 0, 3, -1, -1, 1, 0, 0],
@@ -79,7 +79,7 @@ def test_build_legal_actions():
         turn=Color.BLACK,
     )
     actions = build_legal_actions(board, [2, 2])
-    assert len(actions) == 119
+    assert len(actions) == 120
 
     board = Board(
         points=[0, -2, 1, 2, 0, -3, -1, 0, 0, -1, 0, 0, 0, 1, -1, 0, 0, 0, -1, 0, -1, 0, 0, 0, 0, 0],
@@ -94,9 +94,8 @@ def test_do_undo_actions():
         b = board_.copy()
         do_action(board_, action_)
         assert b.turn != board_.turn
-        if action_.doubles:
-            if action_.takes:
-                assert b.doubling_turn != board_.doubling_turn
+        if action_.doubling == Doubling.TAKE:
+            assert b.doubling_turn != board_.doubling_turn
         elif not action_.dances:
             assert np.any(b.points != board_.points)
         undo_action(board_, action_)
@@ -104,7 +103,8 @@ def test_do_undo_actions():
 
     board = Board()
     board.turn = Color.WHITE
-    for action in [Action([]), Action([Move(8, 5), Move(6, 5)]), Action(doubles=2), Action(doubles=2, takes=True)]:
+    for action in [Action([]), Action([Move(8, 5), Move(6, 5)]), Action([], Doubling.DOUBLE),
+                   Action([], Doubling.TAKE)]:
         assert is_legal_action(action, board)
         check_action(board, action)
 
@@ -114,10 +114,10 @@ def test_do_undo_actions():
         stake_pow=3,
         doubling_turn=Color.BLACK,
     )
-    for action in [Action([]), Action([Move(0, 6, hit=True), Move(0, 1)]), Action(doubles=2**4)]:
+    for action in [Action([]), Action([Move(0, 6, hit=True), Move(0, 1)]), Action([], Doubling.DOUBLE)]:
         assert is_legal_action(action, board)
         check_action(board, action)
     board.doubling_turn = Color.WHITE
-    for action in [Action(doubles=2**4, takes=True)]:
+    for action in [Action([], Doubling.TAKE)]:
         assert is_legal_action(action, board)
         check_action(board, action)

@@ -5,7 +5,7 @@ from tqdm.auto import tqdm  # type: ignore
 
 from .core import Color
 from .board import Board
-from .moves.legal_actions import Action
+from .actions import Action
 from .game import Game
 from .players import Player
 

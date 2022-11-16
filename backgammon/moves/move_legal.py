@@ -58,7 +58,7 @@ def build_legal_move(board: Board, src: int, pips: int, pseudolegal: bool = Fals
     dst = src - color * pips
     if dst < 0 or 25 < dst:
         if not pseudolegal and board.checkers_before(src, color):
-            raise IllegalMoveError(f"need (still) to bear off exactly from {src}")
+            raise IllegalMoveError(f"(still) need to bear off exactly from {src}")
         dst = max(0, min(dst, 25))
 
     hit = (0 < dst < 25) and bool(board.points[dst] == -color)

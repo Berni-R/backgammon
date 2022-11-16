@@ -1,4 +1,5 @@
 from typing import NamedTuple
+from numpy.typing import NDArray
 from enum import IntEnum
 import numpy as np
 
@@ -20,21 +21,26 @@ _WHITE_BAR = 25
 _BLACK_BAR = 0
 
 
+def roll_dice(n: int = 2) -> NDArray[np.int_]:
+    """Roll `n` dice and return a numpy array of what was rolled."""
+    return np.random.randint(1, 7, size=n)
+
+
+class WinType(IntEnum):
+    NORMAL = 1
+    GAMMON = 2
+    BACKGAMMON = 3
+
+
 class GameResult(NamedTuple):
+
     winner: Color = Color.NONE
     doubling_cube: int = 1
-    # TODO: this data structure allows for gammon=False and backgammon=True, which does not make sense..
-    gammon: bool = False
-    backgammon: bool = False
+    wintype: WinType = WinType.NORMAL
 
     @property
     def stake(self) -> int:
-        stake = self.doubling_cube
-        if self.backgammon:
-            return 3 * stake
-        if self.gammon:
-            return 2 * stake
-        return stake
+        return self.wintype * self.doubling_cube
 
 
 class IllegalMoveError(Exception):

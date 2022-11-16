@@ -5,7 +5,7 @@ import numpy as np
 from ..core import Color
 from ..board import Board
 from .base import Player
-from ..moves.legal_actions import Action, build_legal_actions, do_action, undo_action
+from ..actions import Action, build_legal_actions, do_action, undo_action
 
 
 class SimplePlayer(Player):

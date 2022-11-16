@@ -3,7 +3,7 @@ import numpy as np
 
 from ..board import Board
 from .base import Player
-from ..moves.legal_actions import Action, build_legal_actions
+from ..actions import Action, build_legal_actions
 
 
 class RandomPlayer(Player):
