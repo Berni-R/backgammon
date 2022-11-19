@@ -1,9 +1,9 @@
-from typing import Sequence, Optional, Any, overload
+from typing import Optional, Any, overload
 from numpy.typing import ArrayLike, NDArray
 from math import log2
 import numpy as np
 
-from .core import Color, WinType, _COLOR_SYMBOLS, _START_POINTS, GameResult, _WHITE_BAR, _BLACK_BAR
+from .core import Color, WinType, _START_POINTS, GameResult, _WHITE_BAR, _BLACK_BAR
 from .moves.move import Move
 
 
@@ -40,7 +40,8 @@ class Board:
         return r
 
     def __str__(self) -> str:
-        return self.ascii_art(info=False, swap_ints=False)
+        from .display.board_ascii import board_ascii_art
+        return board_ascii_art(self, info=True, swap_ints=False)
 
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, Board) and (
@@ -270,73 +271,3 @@ class Board:
         if move.hit:
             self.points[move.dst] -= color
             self.points[_WHITE_BAR if color == Color.BLACK else _BLACK_BAR] += color
-
-    def show(self, info: bool = True, syms: Sequence[str] = _COLOR_SYMBOLS, **kwargs):
-        print(self.ascii_art(info=info, syms=syms), **kwargs)
-
-    def ascii_art(self, info: bool = True, swap_ints: bool = True, syms: Sequence[str] = _COLOR_SYMBOLS) -> str:
-        assert len(syms) == 3
-        assert all(isinstance(s, str) for s in syms)
-        assert all(len(s) == 1 for s in syms)
-        symbols = np.array(syms)
-
-        def build_half(points: NDArray[np.int_], bottom: bool, bar: int):
-            points = np.concatenate([points[:6], np.array([bar]), points[6:]])
-
-            rows = []
-            for i in range(4):
-                signs = np.sign(points)
-                rows.append(symbols[signs + 1])
-                points -= signs
-
-            def exceed_char(n):
-                if n == 0:
-                    return ' '
-                elif abs(n) == 1:
-                    return symbols[np.sign(n) + 1]
-                else:  # more than checker left
-                    return str(abs(n))
-            rows.append(np.fromiter(map(exceed_char, points), dtype='U1'))
-            rows_np = np.array(rows)
-            rows_np[:, 6] = rows_np[::-1, 6]  # stack checkers on bar from center, not from edge
-
-            if bottom:
-                rows_np = rows_np[::-1, ::-1]
-
-            def build_row(row):
-                return ' |  ' + '  '.join(row[:6]) + f'  | {row[6]} |  ' + '  '.join(row[7:]) + '  |'
-            rows = [build_row(row) for row in rows_np]
-
-            return '\n'.join(rows)
-
-        if swap_ints and self.turn == Color.BLACK:
-            s = " +-12-11-10--9--8--7--+---+--6--5--4--3--2--1--+\n"
-        else:
-            s = " +-13-14-15-16-17-18--+---+-19-20-21-22-23-24--+\n"
-        s += build_half(self.points[13:25], False, self.points[_WHITE_BAR])
-        s += "\n |                    |   |                    |\n"
-        s += build_half(self.points[1:13], True, self.points[_BLACK_BAR])
-        if swap_ints and self.turn == Color.BLACK:
-            s += "\n +-13-14-15-16-17-18--+---+-19-20-21-22-23-24--+\n"
-        else:
-            s += "\n +-12-11-10--9--8--7--+---+--6--5--4--3--2--1--+\n"
-
-        assert len(s) == 13 * 49
-        s_l = list(s)
-        s_l[49 * 6] = ('^', '?', 'v')[self.turn + 1]
-        s = ''.join(s_l)
-
-        s_l = s.splitlines()
-        if self.stake_pow != 0:
-            if self.doubling_turn == Color.BLACK:
-                s_l[1] += f" x{self.stake:2d}"
-            if self.doubling_turn == Color.WHITE:
-                s_l[-2] += f" x{self.stake:2d}"
-        s = '\n'.join(s_l)
-
-        if info:
-            s += '\n'
-            for color, name in [(Color.BLACK, "Black"), (Color.WHITE, "White")]:
-                s += f"\n{name}:  {self.pip_count(color):3d} pips  /  borne off: {15 - self.checkers_count(color):2d}"
-
-        return s

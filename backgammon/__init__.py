@@ -1,6 +1,7 @@
 from . import core
 from . import moves
 from . import board
+from . import display
 from . import actions
 from . import players
 from . import game
@@ -18,6 +19,7 @@ from .moves import (
     assert_legal_move, is_legal_move, build_legal_move, build_legal_moves
 )
 from .board import Board
+from .display import board_ascii_art, print_board
 from .actions import (
     Action,
     assert_legal_action, is_legal_action,
