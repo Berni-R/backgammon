@@ -7,6 +7,7 @@ import numpy as np
 from backgammon.core import Color
 from backgammon.moves.move import Move
 from backgammon.board import Board
+from backgammon.display import board_ascii_art
 
 
 def rand_color(allow_none: bool = False) -> Color:
@@ -40,7 +41,7 @@ def test_board():
         """  doubling_turn = Color.NONE,\n"""
         """)"""
     )
-    assert board.ascii_art() == (
+    assert board_ascii_art(board) == (
         """ +-13-14-15-16-17-18--+---+-19-20-21-22-23-24--+\n"""
         """ |  O           X     |   |  X              O  |\n"""
         """ |  O           X     |   |  X              O  |\n"""
@@ -79,7 +80,7 @@ def test_board():
     assert all(board.checkers_count() == [15, 13])
     assert board.checkers_count(Color.BLACK) == 15
     assert board.checkers_count(Color.WHITE) == 13
-    assert board.ascii_art() == (
+    assert board_ascii_art(board) == (
         """ +-12-11-10--9--8--7--+---+--6--5--4--3--2--1--+\n"""
         """ |              X     |   |  O                 |\n"""
         """ |              X     |   |  O                 |\n"""
@@ -99,9 +100,6 @@ def test_board():
     )
     for point, color in [(1, Color.NONE), (2, Color.WHITE), (3, Color.BLACK), (19, Color.WHITE), (11, Color.NONE)]:
         assert board.color_at(point) == color
-
-    with pytest.raises(TypeError):
-        board.turn = None
 
     with pytest.raises(TypeError):
         board.stake = "stake"

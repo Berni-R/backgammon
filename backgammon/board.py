@@ -43,6 +43,10 @@ class Board:
         from .display.board_ascii import board_ascii_art
         return board_ascii_art(self, info=True, swap_ints=False)
 
+    def _repr_svg_(self) -> str:
+        from .display import board_svg, DisplayStyle
+        return board_svg(self, DisplayStyle()).asSvg()
+
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, Board) and (
                 bool(np.all(self.points == other.points))
