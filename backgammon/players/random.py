@@ -13,13 +13,13 @@ class RandomPlayer(Player):
         self.double_prob = double_prob
         self.double_take_prob = double_take_prob
 
-    def _choose_action(self, board: Board, dice: NDArray[np.int_]) -> Action:
+    def choose_action(self, board: Board, dice: NDArray[np.int_]) -> Action:
         actions = build_legal_actions(board, dice)
         action = actions[np.random.randint(len(actions))]
         return action
 
-    def _will_double(self, board: Board, points: NDArray[np.int_], match_ends_at: int) -> bool:
+    def will_double(self, board: Board, points: NDArray[np.int_], match_ends_at: int) -> bool:
         return np.random.rand() <= self.double_prob
 
-    def _will_take_doubling(self, board: Board, points: NDArray[np.int_], match_ends_at: int) -> bool:
+    def will_take_doubling(self, board: Board, points: NDArray[np.int_], match_ends_at: int) -> bool:
         return np.random.rand() <= self.double_take_prob

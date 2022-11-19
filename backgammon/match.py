@@ -1,6 +1,6 @@
 from typing import Optional, Iterable, Callable, Any
 import numpy as np
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike, NDArray
 from tqdm.auto import tqdm  # type: ignore
 
 from .core import Color
@@ -9,7 +9,7 @@ from .actions import Action
 from .game import Game
 from .players import Player
 
-MoveHook = Callable[[Game, Action], bool]
+MoveHook = Callable[[Game, ArrayLike, Action], bool]
 GameHook = Callable[[Game], bool]
 
 
@@ -20,11 +20,13 @@ class Match:
             black: Player,
             white: Player,
             n_points: int = 1,
+            no_doubling: bool = False,
             start_board: Optional[Board] = None,
     ):
         self.black = black
         self.white = white
         self.n_points = n_points
+        self.no_doubling = no_doubling
         self.start_board = start_board
 
         self.points = np.array([0, 0])
@@ -32,12 +34,12 @@ class Match:
 
         self._current_game: Optional[Game] = None  # useful for debugging
 
-    def play_single_game(self, after_move: Iterable['MoveHook'] = ()) -> Game:
-        game = Game(black=self.black, white=self.white, start_board=self.start_board)
+    def play_single_game(self, after_move: Iterable[MoveHook] = ()) -> Game:
+        game = Game(black=self.black, white=self.white, start_board=self.start_board, no_doubling=self.no_doubling)
         self._current_game = game
         while not game.game_over():
             dice, action = game.do_turn(self.points, self.n_points)
-            if any([hook(game, action) for hook in after_move]):
+            if any([hook(game, dice, action) for hook in after_move]):
                 break
 
         self.games.append(game)
@@ -51,8 +53,8 @@ class Match:
 
     def play(
             self,
-            after_move: Iterable['MoveHook'] = (),
-            after_game: Iterable['GameHook'] = (),
+            after_move: Iterable[MoveHook] = (),
+            after_game: Iterable[GameHook] = (),
             tqdm_disable: bool = False,
             tqdm_args: Optional[dict[str, Any]] = None,
     ):

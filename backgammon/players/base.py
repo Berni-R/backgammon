@@ -38,31 +38,32 @@ class Player(ABC):
         return dice
 
     @abstractmethod
-    def _choose_action(self, board: Board, dice: NDArray[np.int_]) -> Action:
+    def choose_action(self, board: Board, dice: NDArray[np.int_]) -> Action:
         ...
 
     @abstractmethod
-    def _will_double(self, board: Board, points: NDArray[np.int_], match_ends_at: int) -> bool:
+    def will_double(self, board: Board, points: NDArray[np.int_], match_ends_at: int) -> bool:
         ...
 
     @abstractmethod
-    def _will_take_doubling(self, board: Board, points: NDArray[np.int_], match_ends_at: int) -> bool:
+    def will_take_doubling(self, board: Board, points: NDArray[np.int_], match_ends_at: int) -> bool:
         ...
 
     def respond_to_doubling(self, board: Board, points: ArrayLike = (0, 0), match_ends_at: int = 1) -> Action:
         points = self._to_nparr_2int(points)
-        if self._will_take_doubling(board, points, match_ends_at):
+        if self.will_take_doubling(board, points, match_ends_at):
             doubling = Doubling.TAKE
         else:
             doubling = Doubling.DROP
         return Action([], doubling)
 
-    def play(self, board: Board, dice: ArrayLike, points: ArrayLike = (0, 0), match_ends_at: int = 1):
+    def play(self, board: Board, dice: ArrayLike, points: ArrayLike = (0, 0), match_ends_at: int = 1,
+             no_doubling: bool = False):
         dice = Player._to_nparr_2int(dice)
         points = Player._to_nparr_2int(points)
 
-        if board.doubling_turn is Color.NONE or board.turn == board.doubling_turn:
-            if self._will_double(board, points, match_ends_at):
+        if not no_doubling and (board.doubling_turn is Color.NONE or board.turn == board.doubling_turn):
+            if self.will_double(board, points, match_ends_at):
                 return Action([], Doubling.DOUBLE)
 
-        return self._choose_action(board, dice)
+        return self.choose_action(board, dice)

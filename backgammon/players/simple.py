@@ -168,18 +168,18 @@ class SimplePlayer(Player):
         undo_action(board, action)
         return val
 
-    def _choose_action(self, board: Board, dice: NDArray[np.int_]) -> Action:
+    def choose_action(self, board: Board, dice: NDArray[np.int_]) -> Action:
         actions = build_legal_actions(board, dice)
         act_eval = np.fromiter((self.eval_action(board, action) for action in actions), float)
         best_idx = np.where(act_eval == np.max(act_eval))[0]
         action = actions[np.random.choice(best_idx)]
         return action
 
-    def _will_double(self, board: Board, points: NDArray[np.int_], match_ends_at: int) -> bool:
+    def will_double(self, board: Board, points: NDArray[np.int_], match_ends_at: int) -> bool:
         # TODO: use points and match_ends_at
         return self.est_win_prob(board) > self.doubling_th
 
-    def _will_take_doubling(self, board: Board, points: NDArray[np.int_], match_ends_at: int) -> bool:
+    def will_take_doubling(self, board: Board, points: NDArray[np.int_], match_ends_at: int) -> bool:
         # TODO: use points and match_ends_at
         th = 1.0 - self.doubling_th
         return self.est_win_prob(board) > th
