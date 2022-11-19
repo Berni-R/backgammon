@@ -20,22 +20,22 @@ class Board:
         self.points = _START_POINTS.copy() if points is None else np.array(points, dtype=int, copy=copy)
         if self.points.shape != (24 + 2,):
             raise ValueError(f"points must have shape (26,), but got shape {self.points.shape}")
-        self._turn = turn
-        self._stake_pow = stake_pow
-        self._doubling_turn = doubling_turn
+        self.turn = turn
+        self.stake_pow = stake_pow
+        self.doubling_turn = doubling_turn
 
     def __hash__(self) -> int:
         # the int cast makes PyCharm happy...
-        return hash(tuple(self.points) + (int(self._turn), self._stake_pow, int(self._doubling_turn)))
+        return hash(tuple(self.points) + (int(self.turn), self.stake_pow, int(self.doubling_turn)))
 
     def __repr__(self) -> str:
         def arr2str(arr):
             return "[" + ",".join(map(lambda n: f"{n:2d}", arr)) + "]"
         r = f"Board(\n" \
             f"  points        = {arr2str(self.points)},\n" \
-            f"  turn          = {str(self._turn)},\n" \
-            f"  stake_pow     = {self._stake_pow},\n" \
-            f"  doubling_turn = {str(self._doubling_turn)},\n" \
+            f"  turn          = {str(self.turn)},\n" \
+            f"  stake_pow     = {self.stake_pow},\n" \
+            f"  doubling_turn = {str(self.doubling_turn)},\n" \
             f")"
         return r
 
@@ -45,9 +45,9 @@ class Board:
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, Board) and (
                 bool(np.all(self.points == other.points))
-                and self._turn == other._turn
-                and self._stake_pow == other._stake_pow
-                and self._doubling_turn == other._doubling_turn
+                and self.turn == other.turn
+                and self.stake_pow == other.stake_pow
+                and self.doubling_turn == other.doubling_turn
         )
 
     def copy(self) -> 'Board':
@@ -56,17 +56,17 @@ class Board:
     def __copy__(self) -> 'Board':
         return Board(
             points=self.points,
-            turn=self._turn,
-            stake_pow=self._stake_pow,
-            doubling_turn=self._doubling_turn,
+            turn=self.turn,
+            stake_pow=self.stake_pow,
+            doubling_turn=self.doubling_turn,
             copy=True,
         )
 
     def flip(self):
         self.points = -self.points[::-1]
-        self._turn = self._turn.other()
-        # self._stake_pow = self._stake_pow
-        self._doubling_turn = self._doubling_turn.other()
+        self.turn = self.turn.other()
+        # self.stake_pow = self.stake_pow
+        self.doubling_turn = self.doubling_turn.other()
 
     def flipped(self) -> 'Board':
         copy = self.__copy__()
@@ -84,46 +84,22 @@ class Board:
     def color_at(self, point: int) -> Color:
         return Color(np.sign(self.points[point]))
 
-    @property
-    def turn(self) -> Color:
-        return self._turn
-
-    @turn.setter
-    def turn(self, turn: Color):
-        if not isinstance(turn, Color):
-            raise TypeError(f"can only set turn to type Color, got {type(turn)}")
-        self._turn = turn
-
     def switch_turn(self):
-        self._turn = self._turn.other()
-
-    @property
-    def doubling_turn(self) -> Color:
-        return self._doubling_turn
-
-    @doubling_turn.setter
-    def doubling_turn(self, turn: Color):
-        if not isinstance(turn, Color):
-            raise TypeError(f"can only set doubling turn to type Color, got {type(turn)}")
-        self._doubling_turn = turn
+        self.turn = self.turn.other()
 
     def switch_doubling_turn(self):
-        self._doubling_turn = self._doubling_turn.other()
+        self.doubling_turn = self.doubling_turn.other()
 
     @property
     def stake(self) -> int:
-        return 2 ** self._stake_pow
+        return 2 ** self.stake_pow
 
     @stake.setter
     def stake(self, stake: int):
-        if not isinstance(stake, int):
-            raise TypeError(f"can only set stake to type int, got {type(stake)}")
-        if stake <= 0:
-            raise ValueError(f"stake needs to be positive, got {stake}")
         stake_pow = int(log2(stake))
         if 2 ** stake_pow != stake:
             raise ValueError(f"stake needs to be a power of 2, got {stake}")
-        self._stake_pow = stake_pow
+        self.stake_pow = stake_pow
 
     @overload
     def pip_count(self, color: None = None) -> NDArray[np.int_]: ...
@@ -184,7 +160,7 @@ class Board:
     def result(self) -> GameResult:
         winner = self.winner()
         wintype = self.win_type(winner.other())
-        return GameResult(winner, 2 ** self._stake_pow, wintype)
+        return GameResult(winner, self.stake, wintype)
 
     def checkers_before(self, point: int, color: Color) -> bool:
         if color == Color.WHITE:
@@ -196,7 +172,7 @@ class Board:
 
     def bearing_off_allowed(self, color: Optional[Color] = None) -> bool:
         if color is None:
-            color = self._turn
+            color = self.turn
 
         if color == Color.WHITE:
             return not self.checkers_before(6, Color.WHITE)
@@ -333,28 +309,28 @@ class Board:
 
             return '\n'.join(rows)
 
-        if swap_ints and self._turn == Color.BLACK:
+        if swap_ints and self.turn == Color.BLACK:
             s = " +-12-11-10--9--8--7--+---+--6--5--4--3--2--1--+\n"
         else:
             s = " +-13-14-15-16-17-18--+---+-19-20-21-22-23-24--+\n"
         s += build_half(self.points[13:25], False, self.points[_WHITE_BAR])
         s += "\n |                    |   |                    |\n"
         s += build_half(self.points[1:13], True, self.points[_BLACK_BAR])
-        if swap_ints and self._turn == Color.BLACK:
+        if swap_ints and self.turn == Color.BLACK:
             s += "\n +-13-14-15-16-17-18--+---+-19-20-21-22-23-24--+\n"
         else:
             s += "\n +-12-11-10--9--8--7--+---+--6--5--4--3--2--1--+\n"
 
         assert len(s) == 13 * 49
         s_l = list(s)
-        s_l[49 * 6] = ('^', '?', 'v')[self._turn + 1]
+        s_l[49 * 6] = ('^', '?', 'v')[self.turn + 1]
         s = ''.join(s_l)
 
         s_l = s.splitlines()
-        if self._stake_pow != 0:
-            if self._doubling_turn == Color.BLACK:
+        if self.stake_pow != 0:
+            if self.doubling_turn == Color.BLACK:
                 s_l[1] += f" x{self.stake:2d}"
-            if self._doubling_turn == Color.WHITE:
+            if self.doubling_turn == Color.WHITE:
                 s_l[-2] += f" x{self.stake:2d}"
         s = '\n'.join(s_l)
 
