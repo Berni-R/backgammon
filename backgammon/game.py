@@ -3,7 +3,7 @@ from numpy.typing import NDArray, ArrayLike
 from copy import deepcopy
 import numpy as np
 
-from .core import Color, GameResult, roll_dice
+from .core import Color, WinType, GameResult, roll_dice
 from .board import Board
 from .players import Player
 from .actions import Doubling, Action, do_action, assert_legal_action
@@ -27,6 +27,8 @@ class History(list[tuple[NDArray[np.int_], Action]]):
             else:
                 print(f"{act}", **kwargs)
             ply += 1
+        if ply % 2 == 1:
+            print(**kwargs)
 
 
 class Game:
@@ -67,7 +69,7 @@ class Game:
             return GameResult(
                 winner=winner,
                 doubling_cube=self.board.stake,
-                wintype=self.board.win_type(winner.other()),
+                wintype=WinType.NORMAL,
             )
         else:
             return self.board.result()
