@@ -21,8 +21,7 @@ from .moves import (
 from .board import Board
 from .display import (
     board_ascii_art, print_board,
-    DisplayStyle,
-    board_svg,
+    DisplayStyle, BoardDrawing,
 )
 from .actions import (
     Action,
