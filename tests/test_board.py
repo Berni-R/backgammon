@@ -4,9 +4,9 @@ import pytest
 
 import numpy as np
 
-from backgammon.core import Color
-from backgammon.moves.move import Move
-from backgammon.board import Board
+from backgammon.core.defs import Color
+from backgammon.core.move import Move
+from backgammon.core.board import Board
 from backgammon.display import board_ascii_art
 
 

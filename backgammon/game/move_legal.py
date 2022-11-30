@@ -1,6 +1,5 @@
 from ..core import Color, ImpossibleMoveError, IllegalMoveError
-from .move import Move
-from ..board import Board
+from ..core import Move, Board
 
 
 def assert_legal_move(move: Move, board: Board, pseudolegal: bool = False):
@@ -70,7 +69,7 @@ def build_legal_move(board: Board, src: int, pips: int, pseudolegal: bool = Fals
 
 
 def build_legal_moves(board: Board, pips: int, pseudolegal: bool = False) -> list[Move]:
-    """Build all (pseudo-)legal moves that that use a die with `pips` eyes."""
+    """Build all (pseudo-)legal game that that use a die with `pips` eyes."""
     if not 1 <= pips <= 6:
         raise ValueError(f"pips / dice number must be 1, 2, 3, 4, 5, or 6; got {pips}")
 

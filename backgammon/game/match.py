@@ -3,12 +3,11 @@ import numpy as np
 from numpy.typing import NDArray
 from tqdm.auto import tqdm  # type: ignore
 
-from .core import Color
-from .game_state import GameState
-from .game import Game, Action
-from .agents import Agent
+from ..core import Color
+from .game import GameState, Game, Action
+from ..agents import Agent
 
-MoveHook = Callable[[Game, list[int, int], Action], bool]
+MoveHook = Callable[[Game, list[int], Action | None], bool]
 GameHook = Callable[[Game], bool]
 
 

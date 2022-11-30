@@ -1,7 +1,5 @@
-import random
 from typing import NamedTuple
 from enum import IntEnum
-import numpy as np
 
 
 class Color(IntEnum):
@@ -12,18 +10,6 @@ class Color(IntEnum):
 
     def other(self) -> 'Color':
         return Color(-self)
-
-
-_COLOR_SYMBOLS = ('X', ' ', 'O')
-
-_START_POINTS = np.array([0, -2, 0, 0, 0, 0, 5, 0, 3, 0, 0, 0,-5, 5, 0, 0, 0,-3, 0,-5, 0, 0, 0, 0, 2, 0])  # noqa: E231
-_WHITE_BAR = 25
-_BLACK_BAR = 0
-
-
-def roll_dice(n: int = 2) -> list[int]:
-    """Roll `n` dice and return a list of what was rolled."""
-    return [random.randint(1, 6) for _ in range(n)]
 
 
 class WinType(IntEnum):

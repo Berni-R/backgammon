@@ -1,8 +1,8 @@
 from typing import Iterable, Any
+import random
 
-from .core import Color, roll_dice
-from .moves import Move, build_legal_moves
-from .board import Board
+from ..core import Color, Move, Board, IllegalMoveError
+from .move_legal import build_legal_moves, build_legal_move
 
 
 class GameState:
@@ -37,34 +37,46 @@ class GameState:
         return self.__copy__()
 
     def _repr_svg_(self) -> str:
-        from .display import svg_gamestate
+        from ..display import svg_gamestate
         return svg_gamestate(self).tostring()
 
     def roll_dice(self):
         if self.board.turn == Color.NONE:
             dice = [1, 1]
             while dice[0] == dice[1]:
-                dice = roll_dice()
+                dice = [random.randint(1, 6) for _ in range(2)]
             self.board.turn = Color.BLACK if dice[0] > dice[1] else Color.WHITE
         else:
-            dice = roll_dice()
+            dice = [random.randint(1, 6) for _ in range(2)]
 
         if dice[0] == dice[1]:
             dice = [dice[0]] * 4
         self.dice = dice
         self.dice_unused = [True] * len(dice)
 
-    def build_legal_moves(self) -> list[Move]:
+    def build_legal_moves(self, pseudolegal: bool = False) -> list[Move]:
+        # avoid redundancy in move generation
         pips = set(p for p, unused in zip(self.dice, self.dice_unused) if unused)
-        return [m for p in pips for m in build_legal_moves(self.board, p)]
+        return [m for p in pips for m in build_legal_moves(self.board, p, pseudolegal=pseudolegal)]
 
     def do_move(self, move: Move) -> int:
+        # TODO: rethink, if this checking of a move is appropriate
         i: int | None = None
-        for i, pips in enumerate(self.dice):
-            if self.dice_unused[i] and move in build_legal_moves(self.board, pips):
-                self.dice_unused[i] = False
+        for k, pips in enumerate(self.dice):
+            if not self.dice_unused[k]:
+                continue
+
+            try:
+                m = build_legal_move(self.board, move.src, pips, pseudolegal=False)
+            except IllegalMoveError:
+                continue
+
+            if move.pips <= pips and move == m:
+                self.dice_unused[k] = False
+                i = k
                 break
         assert i is not None, f"Move {move} not within the legal moves"
+
         self.board.do_move(move)
         return i
 

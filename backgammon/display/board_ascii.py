@@ -2,12 +2,15 @@ from typing import Sequence
 from numpy.typing import NDArray
 import numpy as np
 
-from ..core import Color, _COLOR_SYMBOLS, _WHITE_BAR, _BLACK_BAR
-from ..board import Board
+from ..core import Color
+from ..core.board import Board, WHITE_BAR, BLACK_BAR
+
+
+COLOR_SYMBOLS = ('X', ' ', 'O')
 
 
 def board_ascii_art(board: Board, info: bool = True, swap_ints: bool = True,
-                    syms: Sequence[str] = _COLOR_SYMBOLS) -> str:
+                    syms: Sequence[str] = COLOR_SYMBOLS) -> str:
     assert len(syms) == 3
     assert all(isinstance(s, str) for s in syms)
     assert all(len(s) == 1 for s in syms)
@@ -48,9 +51,9 @@ def board_ascii_art(board: Board, info: bool = True, swap_ints: bool = True,
         s = " +-12-11-10--9--8--7--+---+--6--5--4--3--2--1--+\n"
     else:
         s = " +-13-14-15-16-17-18--+---+-19-20-21-22-23-24--+\n"
-    s += build_half(board.points[13:25], False, board.points[_WHITE_BAR])
+    s += build_half(board.points[13:25], False, board.points[WHITE_BAR])
     s += "\n |                    |   |                    |\n"
-    s += build_half(board.points[1:13], True, board.points[_BLACK_BAR])
+    s += build_half(board.points[1:13], True, board.points[BLACK_BAR])
     if swap_ints and board.turn == Color.BLACK:
         s += "\n +-13-14-15-16-17-18--+---+-19-20-21-22-23-24--+\n"
     else:
@@ -77,6 +80,6 @@ def board_ascii_art(board: Board, info: bool = True, swap_ints: bool = True,
     return s
 
 
-def print_board(board: Board, info: bool = True, swap_ints: bool = True, syms: Sequence[str] = _COLOR_SYMBOLS,
+def print_board(board: Board, info: bool = True, swap_ints: bool = True, syms: Sequence[str] = COLOR_SYMBOLS,
                 **kwargs):
     print(board_ascii_art(board, info=info, swap_ints=swap_ints, syms=syms), **kwargs)

@@ -1,8 +1,8 @@
 from typing import Iterable
 import random
 
-from ..moves import Move
-from ..game_state import GameState
+from ..core import Move
+from ..game.game_state import GameState
 from .base import Agent
 
 

@@ -3,8 +3,13 @@ from numpy.typing import ArrayLike, NDArray
 from math import log2
 import numpy as np
 
-from .core import Color, WinType, _START_POINTS, GameResult, _WHITE_BAR, _BLACK_BAR
-from .moves.move import Move
+from .defs import Color, WinType, GameResult
+from .move import Move
+
+
+START_POINTS = np.array([0, -2, 0, 0, 0, 0, 5, 0, 3, 0, 0, 0, -5, 5, 0, 0, 0, -3, 0, -5, 0, 0, 0, 0, 2, 0])
+WHITE_BAR = 25
+BLACK_BAR = 0
 
 
 class Board:
@@ -17,7 +22,7 @@ class Board:
             doubling_turn: Color = Color.NONE,
             copy: bool = True,
     ):
-        self.points = _START_POINTS.copy() if points is None else np.array(points, dtype=int, copy=copy)
+        self.points = START_POINTS.copy() if points is None else np.array(points, dtype=int, copy=copy)
         if self.points.shape != (24 + 2,):
             raise ValueError(f"points must have shape (26,), but got shape {self.points.shape}")
         self.turn = turn
@@ -40,11 +45,11 @@ class Board:
         return r
 
     def __str__(self) -> str:
-        from .display.board_ascii import board_ascii_art
+        from ..display.board_ascii import board_ascii_art
         return board_ascii_art(self, info=True, swap_ints=False)
 
     def _repr_svg_(self) -> str:
-        from .display import svg_board
+        from ..display import svg_board
         return svg_board(self).tostring()
 
     def __eq__(self, other: Any) -> bool:
@@ -197,7 +202,7 @@ class Board:
                                 the same color as `by`.
             by (Color):         By which color the point might be hit. If it is None, it defaults to the opposing color
                                 of which the checkers on the given `point` are.
-            only_legal (bool):  Restrict to legals moves. This means, that if there are checkers of the hitter's color
+            only_legal (bool):  Restrict to legals game. This means, that if there are checkers of the hitter's color
                                 on the bar, only considers those as potential hitters, ignore all other checkers.
 
         Returns:
@@ -205,7 +210,7 @@ class Board:
         """
         if not 0 <= point <= 25:
             raise IndexError(f"{point} is not a valid point to hit")
-        if point in (_BLACK_BAR, _WHITE_BAR):
+        if point in (BLACK_BAR, WHITE_BAR):
             return 0.0
         if by is None:
             by = self.color_at(point).other()
@@ -217,10 +222,10 @@ class Board:
         def is_not_blocked(dist: int) -> bool:
             return 0 <= point + by_i * dist <= 25 and by_i * self.points[point + by_i * dist] >= -1
 
-        if only_legal and by == Color.BLACK and self.points[_BLACK_BAR] < 0:
-            hitters_at = np.array([_BLACK_BAR])
-        elif only_legal and by == Color.WHITE and self.points[_WHITE_BAR] > 0:
-            hitters_at = np.array([_WHITE_BAR])
+        if only_legal and by == Color.BLACK and self.points[BLACK_BAR] < 0:
+            hitters_at = np.array([BLACK_BAR])
+        elif only_legal and by == Color.WHITE and self.points[WHITE_BAR] > 0:
+            hitters_at = np.array([WHITE_BAR])
         else:
             hitters_at = np.where(np.sign(self.points) == by_i)[0]
 
@@ -257,10 +262,10 @@ class Board:
 
         if move.hit:
             self.points[move.dst] += color
-            self.points[_WHITE_BAR if color == Color.BLACK else _BLACK_BAR] -= color
+            self.points[WHITE_BAR if color == Color.BLACK else BLACK_BAR] -= color
 
         self.points[move.src] -= color
-        if move.dst not in (_BLACK_BAR, _WHITE_BAR):
+        if move.dst not in (BLACK_BAR, WHITE_BAR):
             self.points[move.dst] += color
 
     def undo_move(self, move: Move):
@@ -277,4 +282,4 @@ class Board:
 
         if move.hit:
             self.points[move.dst] -= color
-            self.points[_WHITE_BAR if color == Color.BLACK else _BLACK_BAR] += color
+            self.points[WHITE_BAR if color == Color.BLACK else BLACK_BAR] += color

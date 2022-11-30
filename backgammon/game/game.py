@@ -3,10 +3,9 @@ from dataclasses import dataclass
 from enum import Enum, auto
 import random
 
-from .core import Color, GameResult, WinType
-from .moves import Move
+from ..core import Color, GameResult, WinType, Move
 from .game_state import GameState
-from .agents import Agent
+from ..agents import Agent
 
 
 class ActionType(Enum):
@@ -48,7 +47,7 @@ class Game:
         return n_moves == n_used
 
     def _repr_svg_(self) -> str:
-        from .display import DisplayStyle, get_dice_colors, svg_gamestate
+        from ..display import DisplayStyle, get_dice_colors, svg_gamestate
         ds = DisplayStyle()
         last_move = self.moves[-1][1] if len(self.moves) else None
         dice_colors = get_dice_colors(dice=self.state.dice, game_start=self._first_move(), state=self.state, ds=ds)
@@ -107,7 +106,7 @@ class Game:
             allow_doubling: bool = True,
     ) -> Action | None:
         if self.game_over():
-            return
+            return None
         if isinstance(agents, Agent):
             agents = {Color.BLACK: agents, Color.WHITE: agents}
 
@@ -135,11 +134,11 @@ class Game:
                     return action
 
             self.state.roll_dice()
-            return
+            return None
 
         if len(self.state.build_legal_moves()) == 0:
             self.finish_turn()
-            return
+            return None
 
         agent = agents[self.state.board.turn]
         move = agent.choose_move(self.state)

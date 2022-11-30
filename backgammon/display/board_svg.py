@@ -1,10 +1,10 @@
 from typing import Any, Literal, Iterable
 from svgwrite.drawing import Drawing  # type: ignore
 from svgwrite import shapes, container, gradients  # type: ignore
+from svgwrite.utils import strlist  # type: ignore
 import numpy as np
 
-from ..core import Color
-from ..board import Board
+from ..core import Color, Board
 from .style import DisplayStyle
 from .tools import brighten_color
 
@@ -26,7 +26,7 @@ class BoardDrawing(Drawing):
                 ds.height + 2 * ds.boarder[1],
             )
         if origin is None:
-            origin = tuple(ds.boarder)
+            origin = tuple(ds.boarder)  # type: ignore
 
         self.ds = ds
         self.origin = origin
@@ -35,7 +35,6 @@ class BoardDrawing(Drawing):
         self._def_checkers()
 
     def add(self, element):
-        from svgwrite.utils import strlist
         # left append the translation - a simple `element.translate` would mess with other transforms
         transforms = element.attribs.get(element.transformname, '')
         shift = "translate(%s)" % strlist(self.origin)
@@ -105,7 +104,7 @@ class BoardDrawing(Drawing):
 
         dark_color = "black"
         if isinstance(n, (int, np.int_)):
-            pos = [
+            pos: list[list[tuple[float, float]]] = [
                 [],
                 [(0.50, 0.50)],
                 [(0.25, 0.25), (0.75, 0.75)],
@@ -267,6 +266,7 @@ class BoardDrawing(Drawing):
             swap_ints: bool = True,
             show_pips: bool = True,
     ) -> container.Group:
+        # TODO: highlight borne off checkers
         ds = self.ds
         b = self.g()
 
@@ -281,8 +281,7 @@ class BoardDrawing(Drawing):
                 if not 1 <= pnt <= 24:
                     raise ValueError(f"{pnt} is not a point on the board that can be highlighted")
                 # TODO: draw line inside the triangle
-                triangle = self.point_triangle(pnt, fill='none', stroke=color, stroke_width=ds.lw)
-                b.add(triangle)
+                b.add(self.point_triangle(pnt, fill='none', stroke=color, stroke_width=ds.lw))
 
         # turn marker
         if board.turn != Color.NONE:

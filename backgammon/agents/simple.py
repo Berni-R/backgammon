@@ -2,10 +2,8 @@ from typing import Optional, Iterable
 from functools import lru_cache
 import numpy as np
 
-from ..core import Color
-from ..moves import Move
-from ..board import Board
-from ..game_state import GameState
+from ..core import Color, Move, Board
+from ..game.game_state import GameState
 from .base import Agent
 
 
@@ -44,7 +42,7 @@ class SimpleAgent(Agent):
         doubling_th (float):        Player will double the stake, if they judge the winning probability to be higher
                                     than this number. Conversely, accept a doubling if the winnings probability is
                                     judged to be 1 - <doubling_th>.
-        eval_randomize (float):     Make the player play more random moves.
+        eval_randomize (float):     Make the player play more random game.
                                     Adds a normallay distributed variable with the given standard deviation to the move
                                     evaluation. This will reduce (except for very small numbers) the player's strength.
                                     Emperically, it's playing strength will reduce as follows:
@@ -166,7 +164,7 @@ class SimpleAgent(Agent):
 
     def choose_move(self, state: GameState, eval_randomize: float | None = None) -> Move:
         legal_moves = state.build_legal_moves()
-        assert len(legal_moves) > 0, "No moves to choose from"
+        assert len(legal_moves) > 0, "No game to choose from"
 
         move_eval = np.fromiter((self.eval_move(state, move, state.board.turn) for move in legal_moves), float)
 

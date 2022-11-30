@@ -1,7 +1,7 @@
 import numpy as np
 
-from backgammon.core import Color
-from backgammon.board import Board
+from backgammon.core.defs import Color
+from backgammon.core.board import Board
 
 
 def test_hit_prob():
