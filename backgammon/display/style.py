@@ -19,7 +19,8 @@ class DisplayStyle:
             bg_dark: str = f"#{185:x}{135:x}{70:x}",
             metal_color: str = f"#{170:x}{174:x}{190:x}",
             die_color: str = f"#{225:x}{225:x}{225:x}",
-            highlight_color: str = "lime",  # "deeppink",
+            highlight_color_1: str = "lime",
+            highlight_color_2: str = "deeppink",
             font: str = "Arial",  # "Courier New"
     ):
         self.scale = scale
@@ -33,7 +34,8 @@ class DisplayStyle:
         self.bg_dark = bg_dark
         self.metal_color = metal_color
         self.die_color = die_color
-        self.highlight_color = highlight_color
+        self.highlight_color_1 = highlight_color_1
+        self.highlight_color_2 = highlight_color_2
         self.font = font
 
     @property

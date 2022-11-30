@@ -1,5 +1,5 @@
+import random
 from typing import NamedTuple
-from numpy.typing import NDArray
 from enum import IntEnum
 import numpy as np
 
@@ -21,9 +21,9 @@ _WHITE_BAR = 25
 _BLACK_BAR = 0
 
 
-def roll_dice(n: int = 2) -> NDArray[np.int_]:
-    """Roll `n` dice and return a numpy array of what was rolled."""
-    return np.random.randint(1, 7, size=n)
+def roll_dice(n: int = 2) -> list[int]:
+    """Roll `n` dice and return a list of what was rolled."""
+    return [random.randint(1, 6) for _ in range(n)]
 
 
 class WinType(IntEnum):

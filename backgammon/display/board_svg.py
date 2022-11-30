@@ -2,12 +2,11 @@ from typing import Any, Literal, Iterable
 from svgwrite.drawing import Drawing  # type: ignore
 from svgwrite import shapes, container, gradients  # type: ignore
 import numpy as np
-from math import nan
 
 from ..core import Color
 from ..board import Board
 from .style import DisplayStyle
-from .tools import staple_pos, brighten_color
+from .tools import brighten_color
 
 
 class BoardDrawing(Drawing):
@@ -127,6 +126,23 @@ class BoardDrawing(Drawing):
 
         return die
 
+    def dice(self, dice: list[int], dice_colors: list[str]) -> container.Group:
+        if len(dice_colors) != len(dice):
+            raise ValueError(f"length of dice colors ({len(dice_colors)}) does not match the dice ({len(dice)})")
+
+        def rand():
+            return 0.0  # 0.2 * (np.random.rand() - 0.5)
+
+        ds = self.ds
+        off, dist = (1.0, 1.7) if len(dice) > 2 else (1.2, 2.2)
+        g = self.g()
+        for i, (d, c) in enumerate(zip(dice, dice_colors)):
+            x = 0.5 * ds.width + ds.bar_width / 2 + ((off + i) * dist + rand()) * ds.die_size
+            y = 0.5 * ds.height + 0.4 * rand() * ds.scale
+            die = self.die((x, y), d, fill=c)  # , rotate=360 * np.random.rand())
+            g.add(die)
+        return g
+
     def hinge(self, insert: tuple, size: tuple | None = None, **extra) -> container.Group:
         if size is None:
             size = self.ds.hinge_size
@@ -236,7 +252,7 @@ class BoardDrawing(Drawing):
             for n in range(off):
                 r = self.rect((x, y - color * n * ds.checkers_height),
                               (ds.scale, ds.checkers_height),
-                              fill=c, stroke=brighten_color(c, 0.5), stroke_width=ds.lw / 2, line_loc='inside')
+                              fill=c, stroke=brighten_color(c, 0.5), stroke_width=ds.lw/2, line_loc='inside')
                 checkers.add(r)
 
         return checkers
@@ -244,8 +260,10 @@ class BoardDrawing(Drawing):
     def board(
             self,
             board: Board,
+            dice: Iterable[int] | None = None,
+            dice_colors: Iterable[str] | None = None,
             highlight_pnt: Iterable[int] | dict[int, Any] | None = None,
-            highlight_chk: Iterable[int] | dict[int, Any] | None = None,
+            highlight_chk: Iterable[int | tuple[int, int]] | dict[int | tuple[int, int], Any] | None = None,
             swap_ints: bool = True,
             show_pips: bool = True,
     ) -> container.Group:
@@ -258,7 +276,7 @@ class BoardDrawing(Drawing):
         # highlight points
         if highlight_pnt is not None:
             if not isinstance(highlight_pnt, dict):
-                highlight_pnt = {pnt: ds.highlight_color for pnt in highlight_pnt}
+                highlight_pnt = {pnt: ds.highlight_color_1 for pnt in highlight_pnt}
             for pnt, color in highlight_pnt.items():
                 if not 1 <= pnt <= 24:
                     raise ValueError(f"{pnt} is not a point on the board that can be highlighted")
@@ -280,9 +298,12 @@ class BoardDrawing(Drawing):
         # highlight checkers
         if highlight_chk is not None:
             if not isinstance(highlight_chk, dict):
-                highlight_chk = {pnt: ds.highlight_color for pnt in highlight_chk}
+                highlight_chk = {pnt: ds.highlight_color_1 for pnt in highlight_chk}
             for pnt, color in highlight_chk.items():
-                n = max(0, abs(board.points[pnt])-1)
+                if isinstance(pnt, tuple):
+                    pnt, n = pnt
+                else:
+                    n = max(0, abs(board.points[pnt])-1)
                 xy = ds.checker_pos(pnt, n)
                 b.add(self.circle(xy, r=ds.scale/2-ds.lw/2, fill='none', stroke=color, stroke_width=ds.lw))
 
@@ -291,5 +312,19 @@ class BoardDrawing(Drawing):
             for color in (Color.BLACK, Color.WHITE):
                 attrs = ds.pip_text_attrs(color)
                 b.add(self.text(f"{board.pip_count(color)}", **attrs))
+
+        # dice
+        if dice is not None:
+            dice = list(dice)
+            if dice_colors is None:
+                if board.turn is Color.BLACK:
+                    dice_colors = [ds.chk_dark] * len(dice)
+                elif board.turn is Color.WHITE:
+                    dice_colors = [ds.chk_light] * len(dice)
+                else:
+                    raise ValueError("Need to specify dice colors (no turn given)")
+            dice_colors = list(dice_colors)
+
+            b.add(self.dice(dice, dice_colors))
 
         return b

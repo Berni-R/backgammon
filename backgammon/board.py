@@ -44,11 +44,8 @@ class Board:
         return board_ascii_art(self, info=True, swap_ints=False)
 
     def _repr_svg_(self) -> str:
-        from .display import BoardDrawing, DisplayStyle
-        drawing = BoardDrawing(DisplayStyle())
-        b = drawing.board(self, swap_ints=False)
-        drawing.add(b)
-        return drawing.tostring()
+        from .display import svg_board
+        return svg_board(self).tostring()
 
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, Board) and (
@@ -97,6 +94,9 @@ class Board:
 
     def switch_doubling_turn(self):
         self.doubling_turn = self.doubling_turn.other()
+
+    def can_couble(self) -> bool:
+        return self.doubling_turn == Color.NONE or self.doubling_turn == self.turn
 
     @property
     def stake(self) -> int:

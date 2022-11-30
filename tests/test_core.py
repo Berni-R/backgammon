@@ -1,3 +1,4 @@
+import random
 from backgammon.core import Color, roll_dice, WinType, IllegalMoveError, ImpossibleMoveError, GameResult
 
 
@@ -14,9 +15,10 @@ def test_color():
 
 def test_roll_dice():
     for _ in range(1000):
-        dice = roll_dice()
-        assert dice.shape == (2,)
-        assert all(1 <= dice) and all(dice <= 6)
+        n = random.randint(1, 10)
+        dice = roll_dice(n)
+        assert len(dice) == n
+        assert all(1 <= d <= 6 for d in dice)
 
 
 def test_move_exceptions():

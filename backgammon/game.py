@@ -1,115 +1,147 @@
-from typing import Optional
-from numpy.typing import NDArray, ArrayLike
-from copy import deepcopy
-import numpy as np
+from typing import Collection, Iterable
+from dataclasses import dataclass
+from enum import Enum, auto
+import random
 
-from .core import Color, WinType, GameResult, roll_dice
-from .board import Board
-from .players import Player
-from .actions import Doubling, Action, do_action, assert_legal_action
+from .core import Color, GameResult, WinType
+from .moves import Move
+from .game_state import GameState
+from .agents import Agent
 
 
-class History(list[tuple[NDArray[np.int_], Action]]):
+class ActionType(Enum):
+    NONE = 0
+    MOVE = auto()
+    DOUBLE = auto()
+    TAKE = auto()
+    DROP = auto()
 
-    def __repr__(self):
-        return f"<History, len={len(self)}>"
 
-    def show(self, **kwargs):
-        ply = 0
-        for dice, action in self:
-            if action.doubling == Doubling.NO:
-                act = f"{dice[0]}-{dice[1]}: {str(action):28s}"
-            else:
-                act = f"{action.to_str():33s}"
+@dataclass(slots=True)
+class Action:
+    move: Move | None
+    type: ActionType = ActionType.MOVE
 
-            if ply % 2 == 0:
-                print(f"{ply // 2 + 1:3d}) {act}", end=' ', **kwargs)
-            else:
-                print(f"{act}", **kwargs)
-            ply += 1
-        if ply % 2 == 1:
-            print(**kwargs)
+
+@dataclass(slots=True)
+class Transition:
+    state: GameState
+    action: Action
+    next_state: GameState
+    reward: float
 
 
 class Game:
-    # TODO: implement automatic doubling, beavers, Jacoby Rule
-    # TODO: might want to let player check, previous move was legal or accept otherwise
 
-    def __init__(self, black: Player, white: Player, no_doubling: bool = False, start_board: Optional[Board] = None):
-        self.black = black
-        self.white = white
-        self.board = Board() if start_board is None else start_board.copy()
-        self.no_doubling = no_doubling
-        self._history: History = History()
-        self._first_move_color = Color.NONE
+    def __init__(self, state: GameState | None = None):
+        self.state = GameState() if state is None else state.copy()
+        self.moves: list[tuple[int, Move]] = []
+        self.history: list[Transition] = []
 
-    def __len__(self) -> int:
-        return len(self._history)
-
-    def color_began(self) -> Color:
-        return self._first_move_color
-
-    def resigned(self) -> bool:
-        if len(self._history) == 0:
+    def _first_move(self) -> bool:
+        if len(self.history) == 0:
+            return True
+        if len(self.history) > 4:  # doubling, take, move, [move]
             return False
-        _, action = self._history[-1]
-        return action.doubling == Doubling.DROP
+        n_moves = sum(1 for t in self.history if t.action.type == ActionType.MOVE)
+        n_used = sum(1 for unused in self.state.dice_unused if not unused)
+        return n_moves == n_used
 
-    def game_over(self) -> bool:
-        return self.resigned() or self.board.game_over()
+    def _repr_svg_(self) -> str:
+        from .display import DisplayStyle, get_dice_colors, svg_gamestate
+        ds = DisplayStyle()
+        last_move = self.moves[-1][1] if len(self.moves) else None
+        dice_colors = get_dice_colors(dice=self.state.dice, game_start=self._first_move(), state=self.state, ds=ds)
+        return svg_gamestate(self.state, last_move=last_move, dice_colors=dice_colors).tostring()
 
-    def winner(self) -> Color:
-        if self.resigned():
-            return self.board.turn
-        return self.board.winner()
-
-    def get_result(self) -> GameResult:
-        if self.resigned():
-            winner = self.board.turn
-            return GameResult(
-                winner=winner,
-                doubling_cube=self.board.stake,
-                wintype=WinType.NORMAL,
-            )
+    def sample_history(self, batch_size: int, filter_types: Collection[ActionType] | None = None) -> list[Transition]:
+        if filter_types is None:
+            history = self.history
         else:
-            return self.board.result()
-
-    def get_history(self) -> History:
-        return deepcopy(self._history)
-
-    def roll_dice(self) -> NDArray[np.int_]:
-        if self.board.turn is Color.NONE:
-            dice = np.ones(2, dtype=int)
-            while dice[0] == dice[1]:
-                dice = roll_dice()
-            self.board.turn = Color.BLACK if dice[0] > dice[1] else Color.WHITE
-            self._first_move_color = self.board.turn
-            return dice
-        else:
-            return roll_dice()
+            history = [t for t in self.history if t.action.type in filter_types]
+        if len(history) == 0:
+            return []
+        return random.sample(history, batch_size)
 
     @property
     def turn(self) -> Color:
-        return self.board.turn
+        return self.state.board.turn
 
-    def next_has_to_respond_to_doubling(self) -> bool:
-        if len(self._history) == 0:
+    def resigned(self) -> bool:
+        return len(self.history) > 0 and self.history[-1].action.type == ActionType.DROP
+
+    def game_over(self) -> bool:
+        return self.resigned() or self.state.board.game_over()
+
+    def do_move(self, move: Move) -> 'Game':
+        state = self.state.copy()
+        i = self.state.do_move(move)
+        reward = self.state.board.result().stake if self.state.board.game_over() else 0
+        self.history.append(Transition(state, Action(move), self.state.copy(), reward))
+        self.moves.append((i, move))
+        return self
+
+    def undo_move(self) -> bool:
+        if len(self.moves) == 0:
             return False
-        _, action = self._history[-1]
-        return action.doubling == Doubling.DOUBLE
+        i, move = self.moves.pop()
+        self.state.undo_move(move, i)
+        self.history.pop()
+        return True
 
-    def do_turn(self, points: ArrayLike = (0, 0), match_ends_at: int = 1,
-                no_doubling: bool | None = None) -> tuple[NDArray[np.int_], Action]:
-        if no_doubling is None:
-            no_doubling = self.no_doubling
-        # need to first roll dice, because first roll needed to determine player to begin
-        dice = self.roll_dice()
-        player = self.white if self.board.turn == Color.WHITE else self.black
-        if self.next_has_to_respond_to_doubling():
-            action = player.respond_to_doubling(self.board)
-        else:
-            action = player.play(self.board, dice, points, match_ends_at, no_doubling=no_doubling)
-        assert_legal_action(action, self.board)
-        do_action(self.board, action)
-        self._history.append((dice.copy(), action.copy()))
-        return dice, action
+    def finish_turn(self):
+        self.moves = []
+        self.state.finish_turn()
+
+    def result(self) -> GameResult:
+        if self.resigned():
+            # doubling_turn could still be NONE, turn is sure
+            return GameResult(self.state.board.turn, self.state.board.stake, WinType.NORMAL)
+        return self.state.board.result()
+
+    def step(
+            self,
+            agents: Agent | dict[Color, Agent],
+            points: Iterable[int] = (0, 0),
+            match_ends_at: int = 1,
+            allow_doubling: bool = True,
+    ) -> Action | None:
+        if self.game_over():
+            return
+        if isinstance(agents, Agent):
+            agents = {Color.BLACK: agents, Color.WHITE: agents}
+
+        if len(self.history) > 0 and self.history[-1].action.type == ActionType.DOUBLE:
+            state = self.state.copy()
+            agent = agents[self.state.board.turn.other()]
+            if agent.will_take_doubling(self.state, points, match_ends_at):
+                action = Action(None, ActionType.TAKE)
+                self.state.board.doubling_turn = self.state.board.turn.other()
+                self.state.board.stake *= 2
+                reward = 0
+            else:
+                action = Action(None, ActionType.DROP)
+                reward = -self.state.board.stake  # WinType is always NORMAL
+            self.history.append(Transition(state, action, self.state.copy(), reward))
+            return action
+
+        if len(self.state.dice) == 0:
+            if allow_doubling and len(self.history) > 0 and self.state.board.can_couble():
+                agent = agents[self.state.board.turn]
+                if agent.will_double(self.state, points, match_ends_at):
+                    action = Action(None, ActionType.DOUBLE)
+                    state = self.state.copy()
+                    self.history.append(Transition(state, action, state, 0))
+                    return action
+
+            self.state.roll_dice()
+            return
+
+        if len(self.state.build_legal_moves()) == 0:
+            self.finish_turn()
+            return
+
+        agent = agents[self.state.board.turn]
+        move = agent.choose_move(self.state)
+        self.do_move(move)
+        return Action(move)

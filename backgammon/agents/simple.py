@@ -1,14 +1,15 @@
-from typing import Optional
-from numpy.typing import NDArray
+from typing import Optional, Iterable
+from functools import lru_cache
 import numpy as np
 
 from ..core import Color
+from ..moves import Move
 from ..board import Board
-from .base import Player
-from ..actions import Action, build_legal_actions, do_action, undo_action
+from ..game_state import GameState
+from .base import Agent
 
 
-class SimplePlayer(Player):
+class SimpleAgent(Agent):
     """A player that plays by simple handwritten rules, but already quite reasonable.
 
     A strong impact on performance will be from `eval_randomize`. An experiment with match lengths of 1, 3, 5, 7 lead to
@@ -69,6 +70,9 @@ class SimplePlayer(Player):
         self.blot_penalty = blot_penalty
         self.bear_off_bonus = bear_off_bonus
 
+        self.eval_board = lru_cache(maxsize=128)(self._eval_board)
+        self.eval_move = lru_cache(maxsize=128)(self._eval_move)
+
     def est_win_prob(self, board: Board, viewpoint: Optional[Color] = None) -> float:
         """Estimate the winning probability (based on the pip count and empirical win rates of RandomPlayer)."""
         # this is only based on pip count - actual checker distribution (such as blots) is entirely ignored
@@ -85,12 +89,9 @@ class SimplePlayer(Player):
         win_prob = (1 - win_prob_white) if viewpoint == Color.BLACK else win_prob_white
         win_prob = float(win_prob)
 
-        if self.eval_randomize:
-            win_prob += np.random.normal(scale=self.win_prob_randomize)
-
         return win_prob
 
-    def eval_board(self, board: Board, viewpoint: Optional[Color] = None, verbose: bool = False) -> float:
+    def _eval_board(self, board: Board, viewpoint: Optional[Color] = None) -> float:
         """Give the board some evaluation from the given viewpoint. Higher is better.
 
         Heuristics used:
@@ -118,8 +119,6 @@ class SimplePlayer(Player):
         pips = board.pip_count()
         val = viewpoint * (pips[0] - pips[1])
         val_tot += val
-        if verbose:
-            print(f"pip count value: {val} -> {val_tot}")
 
         # helper variables
         blots_mask = (board.points == viewpoint)
@@ -131,55 +130,67 @@ class SimplePlayer(Player):
         val = 0
         for p, pips_add in zip(blots_at, pips_add_if_hit):
             # TODO: restrict to legal only / reduce impact of those, that cannot be hit because opponent must clear bar
-            val += board.hit_prob(p, opponent) * pips_add
+            val += board.hit_prob(p, opponent, only_legal=False) * pips_add
         val_tot -= val
-        if verbose:
-            print("blots:", blots_mask)
-            print("points:", board.points)
-            print(f"blot hit loss exp.: {val} -> {val_tot}")
 
         # penalise blots
         val = self.blot_penalty * blots_mask.sum()
         val_tot -= val
-        if verbose:
-            print(f"blot ({blots_mask.sum()}) penality: {val} -> {val_tot}")
 
         # encourage bearing off
         val = self.bear_off_bonus * (15 - board.checkers_count(viewpoint))
         val_tot += val
-        if verbose:
-            print(f"bear off bonus: {val} -> {val_tot}")
-
-        if self.eval_randomize:
-            val_tot += np.random.normal(scale=self.eval_randomize)
 
         return val_tot
 
-    def eval_action(self, board: Board, action: Action, viewpoint: Optional[Color] = None,
-                    verbose: bool = False) -> float:
+    def _eval_move(self, state: GameState, move: Move, viewpoint: Optional[Color] = None) -> float:
         # viewpoint of current player, not the one after doing the action!
         if viewpoint is None:
-            viewpoint = board.turn
+            viewpoint = state.board.turn
         if viewpoint == Color.NONE:
             raise ValueError(f"viewpoint has to be either Color.BLACK or Color.WHITE, got {viewpoint}")
 
-        do_action(board, action)
-        val = self.eval_board(board, viewpoint, verbose=verbose)
-        undo_action(board, action)
+        i = state.do_move(move)
+        if any(state.dice_unused):
+            legal_moves = state.build_legal_moves()
+            if len(legal_moves) == 0:
+                val = self.eval_board(state.board, viewpoint)
+            else:
+                # call the cached version (no leading underscore) of this function!
+                val = max(self.eval_move(state, m, viewpoint=viewpoint) for m in legal_moves)
+        else:
+            val = self.eval_board(state.board, viewpoint)
+        state.undo_move(move, i)
+
         return val
 
-    def choose_action(self, board: Board, dice: NDArray[np.int_]) -> Action:
-        actions = build_legal_actions(board, dice)
-        act_eval = np.fromiter((self.eval_action(board, action) for action in actions), float)
-        best_idx = np.where(act_eval == np.max(act_eval))[0]
-        action = actions[np.random.choice(best_idx)]
+    def choose_move(self, state: GameState, eval_randomize: float | None = None) -> Move:
+        legal_moves = state.build_legal_moves()
+        assert len(legal_moves) > 0, "No moves to choose from"
+
+        move_eval = np.fromiter((self.eval_move(state, move, state.board.turn) for move in legal_moves), float)
+
+        if eval_randomize is None:
+            eval_randomize = self.eval_randomize
+        if eval_randomize:
+            move_eval += np.random.normal(scale=eval_randomize, size=move_eval.size)
+
+        best_idx = np.where(move_eval == np.max(move_eval))[0]
+        action = legal_moves[np.random.choice(best_idx)]
         return action
 
-    def will_double(self, board: Board, points: NDArray[np.int_], match_ends_at: int) -> bool:
+    def will_double(self, state: GameState, points: Iterable[int], match_ends_at: int) -> bool:
         # TODO: use points and match_ends_at
-        return self.est_win_prob(board) > self.doubling_th
+        win_prob = self.est_win_prob(state.board)
+        if self.eval_randomize:
+            win_prob += np.random.normal(scale=self.win_prob_randomize)
 
-    def will_take_doubling(self, board: Board, points: NDArray[np.int_], match_ends_at: int) -> bool:
+        return win_prob > self.doubling_th
+
+    def will_take_doubling(self, state: GameState, points: Iterable[int], match_ends_at: int) -> bool:
         # TODO: use points and match_ends_at
-        th = 1.0 - self.doubling_th
-        return self.est_win_prob(board) > th
+        win_prob = self.est_win_prob(state.board)
+        if self.eval_randomize:
+            win_prob += np.random.normal(scale=self.win_prob_randomize)
+
+        return win_prob > 1.0 - self.doubling_th

@@ -1,13 +1,13 @@
 from . import core
 from . import moves
 from . import board
-from . import display
-from . import actions
-from . import players
+from . import game_state
 from . import game
+from . import display
+from . import agents
 from . import match
 
-# TODO: 1) write function to animate a Game instance somehow (with adjustable playback speed)
+# TODO: 1) write function to animate a GameState instance somehow (with adjustable playback speed)
 # TODO: 2) write tests for (only) most important functions
 # TODO: 4) improve performance, esp. for action generation of double rolls
 # TODO: 5) built player for a pytorch model - includes encoding of board
@@ -19,16 +19,15 @@ from .moves import (
     assert_legal_move, is_legal_move, build_legal_move, build_legal_moves
 )
 from .board import Board
+from .game_state import GameState
+from .game import (
+    ActionType, Action, Transition,
+    Game,
+)
 from .display import (
     board_ascii_art, print_board,
     DisplayStyle, BoardDrawing,
+    svg_board, svg_gamestate,
 )
-from .actions import (
-    Action,
-    assert_legal_action, is_legal_action,
-    do_action, undo_action, build_legal_actions
-)
-from .players import Player
-from .players import RandomPlayer, SimplePlayer
-from .game import Game
+from .agents import Agent, RandomAgent, SimpleAgent
 from .match import Match
