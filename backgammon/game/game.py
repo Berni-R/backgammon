@@ -5,7 +5,7 @@ import random
 
 from ..core import Color, GameResult, WinType, Move
 from .game_state import GameState
-from ..agents import Agent
+from .agent import Agent
 
 
 class ActionType(Enum):

@@ -2,13 +2,10 @@ from abc import ABC, abstractmethod
 from typing import Iterable
 
 from ..core import Move
-from ..game.game_state import GameState
+from .game_state import GameState
 
 
 class Agent(ABC):
-
-    def __init__(self):
-        pass
 
     def __repr__(self) -> str:
         import inspect

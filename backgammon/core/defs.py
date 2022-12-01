@@ -1,5 +1,5 @@
-from typing import NamedTuple
 from enum import IntEnum
+from dataclasses import dataclass
 
 
 class Color(IntEnum):
@@ -18,7 +18,8 @@ class WinType(IntEnum):
     BACKGAMMON = 3
 
 
-class GameResult(NamedTuple):
+@dataclass(slots=True)
+class GameResult:
 
     winner: Color = Color.NONE
     doubling_cube: int = 1

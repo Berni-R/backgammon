@@ -13,7 +13,7 @@ def assert_legal_move(move: Move, board: Board, pseudolegal: bool = False):
     if color == Color.NONE:
         raise ImpossibleMoveError(f"no checkers to move from index {move.src}")
 
-    if move.dst not in (0, 25):
+    if not move.bearing_off():
         # move on regular point - check if not blocked / hit
         n_dst = board.points[move.dst]
         if -n_dst * color > 1:
@@ -25,17 +25,17 @@ def assert_legal_move(move: Move, board: Board, pseudolegal: bool = False):
         raise ImpossibleMoveError("`Move.hit` is True for a bearing off move")
 
     if not pseudolegal:
-        if not 1 <= move.pips <= 6:
-            raise IllegalMoveError(f"would not move 1 - 6 pips, but {move.pips}")
+        if not 1 <= move.pips() <= 6:
+            raise IllegalMoveError(f"would not move 1 - 6 pips, but {move.pips()}")
 
         if board.turn != Color.NONE and color != board.turn:
             raise IllegalMoveError(f"checker's color {color} on {move.src} does not match board turn {board.turn}")
 
-        if ((color == Color.WHITE and board[25] > 0 and move.src != 25)
-                or (color == Color.BLACK and board[0] < 0 and move.src != 0)):
+        if ((color == Color.WHITE and board.points[25] > 0 and move.src != 25)
+                or (color == Color.BLACK and board.points[0] < 0 and move.src != 0)):
             raise IllegalMoveError(f"checkers on bar need to be moved first for {color}")
 
-        if move.dst in (0, 25) and not board.bearing_off_allowed(color):
+        if move.bearing_off() and not board.bearing_off_allowed(color):
             raise IllegalMoveError(f"bearing off when not all checkers on home board is not allowed (turn: {color})")
 
 

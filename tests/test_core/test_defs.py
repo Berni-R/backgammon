@@ -1,11 +1,14 @@
 from backgammon.core.defs import Color, WinType, IllegalMoveError, ImpossibleMoveError, GameResult
 
 
-def test_color():
-    assert Color.BLACK.value == -1
-    assert Color.NONE.value == 0
-    assert Color.WHITE.value == 1
+def test_color_values():
+    assert Color.NONE == 0
+    assert Color.BLACK * Color.WHITE == -1
+    assert abs(Color.BLACK) == 1
+    assert abs(Color.WHITE) == 1
 
+
+def test_color_other():
     assert Color.BLACK.other() == Color.WHITE
     assert Color.WHITE.other() == Color.BLACK
 

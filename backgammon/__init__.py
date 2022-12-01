@@ -17,6 +17,6 @@ from .game import (
     assert_legal_move, is_legal_move, build_legal_move, build_legal_moves,
     GameState,
     ActionType, Action, Transition,
-    Game, Match,
+    Agent, Game, Match,
 )
-from .agents import Agent, RandomAgent, SimpleAgent
+from .agents import RandomAgent, SimpleAgent

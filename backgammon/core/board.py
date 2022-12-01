@@ -1,4 +1,4 @@
-from typing import Optional, Any, overload
+from typing import Any, overload
 from numpy.typing import ArrayLike, NDArray
 from math import log2
 import numpy as np
@@ -16,7 +16,7 @@ class Board:
 
     def __init__(
             self,
-            points: Optional[ArrayLike] = None,
+            points: ArrayLike | None = None,
             turn: Color = Color.NONE,
             stake_pow: int = 0,
             doubling_turn: Color = Color.NONE,
@@ -31,7 +31,7 @@ class Board:
 
     def __hash__(self) -> int:
         # the int cast makes PyCharm happy...
-        return hash(tuple(self.points) + (int(self.turn), self.stake_pow, int(self.doubling_turn)))
+        return hash(self.points.tobytes()) ^ hash((int(self.turn), self.stake_pow, int(self.doubling_turn)))
 
     def __repr__(self) -> str:
         def arr2str(arr):
@@ -82,14 +82,6 @@ class Board:
         copy = self.__copy__()
         copy.flip()
         return copy
-
-    # TODO: type hints for slices and Co.
-    def __getitem__(self, point: int) -> int:
-        return self.points[point]
-
-    # TODO: type hints for slices and Co.
-    def __setitem__(self, point: int, checkers: int):
-        self.points[point] = checkers
 
     def color_at(self, point: int) -> Color:
         return Color(np.sign(self.points[point]))
@@ -147,7 +139,7 @@ class Board:
             return color * np.sum(self.points[color * self.points > 0])
 
     def game_over(self) -> bool:
-        return bool(np.any(self.pip_count() == 0))
+        return any(self.pip_count() == 0)
 
     def winner(self) -> Color:
         pip_cnt = self.pip_count()
@@ -158,7 +150,7 @@ class Board:
         else:
             return Color.NONE
 
-    def win_type(self, looser: Color) -> WinType:
+    def win_type(self, *, looser: Color) -> WinType:
         if looser is Color.NONE:
             return WinType.NORMAL
         if self.checkers_count(looser) < 15:
@@ -172,7 +164,7 @@ class Board:
 
     def result(self) -> GameResult:
         winner = self.winner()
-        wintype = self.win_type(winner.other())
+        wintype = self.win_type(looser=winner.other())
         return GameResult(winner, self.stake, wintype)
 
     def checkers_before(self, point: int, color: Color) -> bool:
@@ -183,7 +175,7 @@ class Board:
         else:
             return False
 
-    def bearing_off_allowed(self, color: Optional[Color] = None) -> bool:
+    def bearing_off_allowed(self, color: Color | None = None) -> bool:
         if color is None:
             color = self.turn
 
@@ -193,69 +185,6 @@ class Board:
             return not self.checkers_before(19, Color.BLACK)
         else:  # color == Color.NONE
             raise ValueError("need color to be WHITE or BLACK")
-
-    def hit_prob(self, point: int, by: Optional[Color] = None, only_legal: bool = False) -> float:
-        """Calculate the probability by which the given point can be hit in the next move, given it is legal.
-
-        Args:
-            point (int):        The point in question of being hit. This can be any point, also empty ones and those of
-                                the same color as `by`.
-            by (Color):         By which color the point might be hit. If it is None, it defaults to the opposing color
-                                of which the checkers on the given `point` are.
-            only_legal (bool):  Restrict to legals game. This means, that if there are checkers of the hitter's color
-                                on the bar, only considers those as potential hitters, ignore all other checkers.
-
-        Returns:
-            p (float):          The probabilty by which the given point could be hit in the next move.
-        """
-        if not 0 <= point <= 25:
-            raise IndexError(f"{point} is not a valid point to hit")
-        if point in (BLACK_BAR, WHITE_BAR):
-            return 0.0
-        if by is None:
-            by = self.color_at(point).other()
-        if by is Color.NONE:
-            raise ValueError("Color by which to hit is undefined.")
-        assert by is not None
-        by_i = int(by)
-
-        def is_not_blocked(dist: int) -> bool:
-            return 0 <= point + by_i * dist <= 25 and by_i * self.points[point + by_i * dist] >= -1
-
-        if only_legal and by == Color.BLACK and self.points[BLACK_BAR] < 0:
-            hitters_at = np.array([BLACK_BAR])
-        elif only_legal and by == Color.WHITE and self.points[WHITE_BAR] > 0:
-            hitters_at = np.array([WHITE_BAR])
-        else:
-            hitters_at = np.where(np.sign(self.points) == by_i)[0]
-
-        dists = by_i * (hitters_at - point)
-        options = 0
-        for d1 in range(1, 6 + 1):
-            if d1 in dists:
-                options += 6
-                continue
-            for d2 in range(1, 6 + 1):
-                if d2 in dists:
-                    options += 1
-                else:
-                    if d1 == d2:
-                        mid = d1
-                        d = 2 * d1
-                        while d < 5 * d1:
-                            if is_not_blocked(mid):
-                                if d in dists:
-                                    options += 1
-                                    break  # no multi-count of other potential possibilities
-                            else:
-                                break  # in-between point is blocked - cannot walk further anyway
-                            mid += d1
-                            d += d1
-                    elif d1 + d2 in dists:  # not a double roll
-                        if is_not_blocked(d1) or is_not_blocked(d2):
-                            options += 1
-
-        return options / 36
 
     def do_move(self, move: Move):
         color = self.color_at(move.src)
@@ -277,7 +206,7 @@ class Board:
             color = self.color_at(move.dst)
 
         self.points[move.src] += color
-        if move.dst not in (0, 25):
+        if not move.bearing_off():
             self.points[move.dst] -= color
 
         if move.hit:

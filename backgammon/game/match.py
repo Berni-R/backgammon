@@ -1,11 +1,12 @@
-from typing import Optional, Iterable, Callable, Any
+from typing import Iterable, Callable, Any
 import numpy as np
 from numpy.typing import NDArray
 from tqdm.auto import tqdm  # type: ignore
 
 from ..core import Color
-from .game import GameState, Game, Action
-from ..agents import Agent
+from .game_state import GameState
+from .agent import Agent
+from .game import Game, Action
 
 MoveHook = Callable[[Game, list[int], Action | None], bool]
 GameHook = Callable[[Game], bool]
@@ -18,7 +19,7 @@ class Match:
             agents: Agent | dict[Color, Agent],
             n_points: int = 1,
             allow_doubling: bool = True,
-            start_start: Optional[GameState] = None,
+            start_start: GameState | None = None,
     ):
         if isinstance(agents, Agent):
             agents = {Color.BLACK: agents, Color.WHITE: agents}
@@ -30,7 +31,7 @@ class Match:
         self.points = [0, 0]
         self.games: list[Game] = []
 
-        self._current_game: Optional[Game] = None  # useful for debugging
+        self._current_game: Game | None = None  # useful for debugging
 
     def play_single_game(self, after_move: Iterable[MoveHook] = ()) -> Game:
         game = Game(state=self.start_state)
@@ -59,7 +60,7 @@ class Match:
             after_move: Iterable[MoveHook] = (),
             after_game: Iterable[GameHook] = (),
             tqdm_disable: bool = False,
-            tqdm_args: Optional[dict[str, Any]] = None,
+            tqdm_args: dict[str, Any] | None = None,
     ):
         args = dict(unit='points', smoothing=0.05, disable=tqdm_disable)
         if tqdm_args is not None:

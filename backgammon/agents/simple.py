@@ -1,10 +1,9 @@
-from typing import Optional, Iterable
+from typing import Iterable
 from functools import lru_cache
 import numpy as np
 
 from ..core import Color, Move, Board
-from ..game.game_state import GameState
-from .base import Agent
+from ..game import Agent, GameState, hit_prob
 
 
 class SimpleAgent(Agent):
@@ -71,7 +70,7 @@ class SimpleAgent(Agent):
         self.eval_board = lru_cache(maxsize=128)(self._eval_board)
         self.eval_move = lru_cache(maxsize=128)(self._eval_move)
 
-    def est_win_prob(self, board: Board, viewpoint: Optional[Color] = None) -> float:
+    def est_win_prob(self, board: Board, viewpoint: Color | None = None) -> float:
         """Estimate the winning probability (based on the pip count and empirical win rates of RandomPlayer)."""
         # this is only based on pip count - actual checker distribution (such as blots) is entirely ignored
         if viewpoint is None:
@@ -89,7 +88,7 @@ class SimpleAgent(Agent):
 
         return win_prob
 
-    def _eval_board(self, board: Board, viewpoint: Optional[Color] = None) -> float:
+    def _eval_board(self, board: Board, viewpoint: Color | None = None) -> float:
         """Give the board some evaluation from the given viewpoint. Higher is better.
 
         Heuristics used:
@@ -128,7 +127,7 @@ class SimpleAgent(Agent):
         val = 0
         for p, pips_add in zip(blots_at, pips_add_if_hit):
             # TODO: restrict to legal only / reduce impact of those, that cannot be hit because opponent must clear bar
-            val += board.hit_prob(p, opponent, only_legal=False) * pips_add
+            val += hit_prob(board, p, opponent, only_legal=False) * pips_add
         val_tot -= val
 
         # penalise blots
@@ -141,7 +140,7 @@ class SimpleAgent(Agent):
 
         return val_tot
 
-    def _eval_move(self, state: GameState, move: Move, viewpoint: Optional[Color] = None) -> float:
+    def _eval_move(self, state: GameState, move: Move, viewpoint: Color | None = None) -> float:
         # viewpoint of current player, not the one after doing the action!
         if viewpoint is None:
             viewpoint = state.board.turn

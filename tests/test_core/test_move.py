@@ -1,6 +1,7 @@
 import pytest
 
 from backgammon.core.move import Move
+from backgammon.core.board import WHITE_BAR, BLACK_BAR
 
 
 def test_move_str_repr():
@@ -39,38 +40,28 @@ def assert_consistent_data(move: Move):
         raise ValueError("impossible to hit when bearing off")
 
 
-def test_move_consistency_ckeck():
+@pytest.mark.parametrize('src', [0, 1, 4, 8, 13, 19, 24, 25])
+@pytest.mark.parametrize('pips', [-6, -5, -3, 1, 3, 6])
+def test_move_pips(src: int, pips: int):
     # some regular game
-    for src in [0, 1, 4, 8, 13, 19, 24, 25]:
-        for pips in [-6, -5, -3, 1, 3, 6]:
-            dst = src + pips
-            if 0 <= dst <= 25:
-                move = Move(src, dst)
-                assert_consistent_data(move)
-                assert move.pips == abs(pips)
-                if dst not in (0, 25):
-                    move = Move(src, dst, True)
-                    assert not move.bearing_off
-                    assert_consistent_data(move)
-                else:
-                    assert move.bearing_off
-
-    # points may not be 'off the board' (where bar and 'off' are okay, though)
-    for bad in [-5, -1, 26, 42]:
-        for good in [0, 1, 7, 19, 25]:
-            for hit in [False, True]:
-                for src, dst in [(bad, good), (good, bad)]:
-                    with pytest.raises(ValueError):
-                        move = Move(src, dst, hit)
-                        assert_consistent_data(move)
-
-    # impossible to hit when bearing off
-    for move in [Move(21, 25, True), Move(4, 0, True)]:
-        with pytest.raises(ValueError):
-            assert move.bearing_off
+    dst = src + pips
+    if 0 <= dst <= 25:
+        move = Move(src, dst)
+        assert_consistent_data(move)
+        assert move.pips() == abs(pips)
+        if dst in (BLACK_BAR, WHITE_BAR):
+            assert move.bearing_off()
+        else:
+            move = Move(src, dst, True)
+            assert not move.bearing_off()
             assert_consistent_data(move)
 
-    # wrong type should trough
-    for move in [Move('21', 17), Move(4, None, True), Move(21, 0, 0)]:
-        with pytest.raises(TypeError):
-            assert_consistent_data(move)
+
+def test_move_hash():
+    hashes = set()
+    for src in range(26):
+        for dst in range(26):
+            for hit in (True, False):
+                m = Move(src, dst, hit)
+                hashes.add(hash(m))
+    assert len(hashes) > 0.9 * 2 * 26**2

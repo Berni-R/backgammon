@@ -1,7 +1,8 @@
-from typing import NamedTuple
+from dataclasses import dataclass
 
 
-class Move(NamedTuple):
+@dataclass(repr=False, slots=True, unsafe_hash=True)
+class Move:
     src: int
     dst: int
     hit: bool = False
@@ -27,12 +28,11 @@ class Move(NamedTuple):
         return self.to_str()
 
     def __repr__(self) -> str:
-        return f'Move({self.src}, {self.dst}' + ('' if self.hit is False else f', hit={self.hit}') + ')'
+        hit_str = '' if self.hit is False else f', hit={self.hit}'
+        return f'{self.__class__.__name__}({self.src}, {self.dst}{hit_str})'
 
-    @property
     def pips(self) -> int:
         return abs(self.dst - self.src)
 
-    @property
     def bearing_off(self) -> bool:
         return self.dst in (0, 25)

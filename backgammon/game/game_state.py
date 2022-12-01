@@ -71,7 +71,7 @@ class GameState:
             except IllegalMoveError:
                 continue
 
-            if move.pips <= pips and move == m:
+            if move.pips() <= pips and move == m:
                 self.dice_unused[k] = False
                 i = k
                 break

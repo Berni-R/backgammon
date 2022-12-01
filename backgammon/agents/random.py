@@ -2,8 +2,7 @@ from typing import Iterable
 import random
 
 from ..core import Move
-from ..game.game_state import GameState
-from .base import Agent
+from ..game import Agent, GameState
 
 
 class RandomAgent(Agent):
