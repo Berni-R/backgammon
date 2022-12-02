@@ -6,7 +6,7 @@ from backgammon.core.defs import Color
 from backgammon.core.move import Move
 from backgammon.core.board import Board
 
-from defs import rand_board, BOARDS
+from .defs import rand_board, BOARDS
 
 
 def build_random_move(board: Board, color: Color) -> Move:

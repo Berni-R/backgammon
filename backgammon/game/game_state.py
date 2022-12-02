@@ -54,10 +54,10 @@ class GameState:
         self.dice = dice
         self.dice_unused = [True] * len(dice)
 
-    def build_legal_moves(self, pseudolegal: bool = False) -> list[Move]:
-        # avoid redundancy in move generation
+    def build_legal_moves(self) -> list[Move]:
+        # build the set to avoid redundancy in move generation
         pips = set(p for p, unused in zip(self.dice, self.dice_unused) if unused)
-        return [m for p in pips for m in build_legal_moves(self.board, p, pseudolegal=pseudolegal)]
+        return [m for p in pips for m in build_legal_moves(self.board, p)]
 
     def do_move(self, move: Move) -> int:
         # TODO: rethink, if this checking of a move is appropriate
@@ -67,7 +67,7 @@ class GameState:
                 continue
 
             try:
-                m = build_legal_move(self.board, move.src, pips, pseudolegal=False)
+                m = build_legal_move(self.board, move.src, pips)
             except IllegalMoveError:
                 continue
 

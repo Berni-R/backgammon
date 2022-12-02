@@ -3,7 +3,7 @@ import pytest
 from backgammon.core.defs import Color, WinType
 from backgammon.core.board import Board
 
-from defs import (
+from .defs import (
     BOARDS, BOARD_BEARING_OFF, BOARD_BEARING_OFF_TURN, BOARD_CAN_COUBLE,
     BOARD_GAME_OVER, BOARD_WINNERS, BOARD_WINTYPES,
 )

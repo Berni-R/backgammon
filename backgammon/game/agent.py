@@ -16,7 +16,7 @@ class Agent(ABC):
             for arg, p in signature.parameters.items():
                 val = getattr(self, arg) if hasattr(self, arg) else getattr(self, '_' + arg)
                 if val != p.default:
-                    attrs.append(f'{arg}={val}')
+                    attrs.append(f'{arg}={repr(val)}')
         except AttributeError:
             attrs = ["..."]
 

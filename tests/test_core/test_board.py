@@ -6,7 +6,7 @@ from backgammon.core.defs import Color
 from backgammon.core.board import Board
 from backgammon.display import board_ascii_art
 
-from defs import (
+from .defs import (
     rand_board,
     BOARDS, BOARD_PIP_CNSTS, BOARD_CHECKER_CNT,
     BOARD_REPRS, BOARD_ASCIIS,

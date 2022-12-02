@@ -2,8 +2,8 @@ from ..core import Color, ImpossibleMoveError, IllegalMoveError
 from ..core import Move, Board
 
 
-def assert_legal_move(move: Move, board: Board, pseudolegal: bool = False):
-    """Assert that the given move is (pseudo-)legal. (Includes checking the `hit` property.)"""
+def assert_legal_move(move: Move, board: Board):
+    """Assert that the given move is legal. (Includes checking the `hit` property.)"""
     if move.src < 0 or 25 < move.src:
         raise ImpossibleMoveError(f"move source {move.src} not on board")
     if move.dst < 0 or 25 < move.dst:
@@ -16,7 +16,7 @@ def assert_legal_move(move: Move, board: Board, pseudolegal: bool = False):
     if not move.bearing_off():
         # move on regular point - check if not blocked / hit
         n_dst = board.points[move.dst]
-        if -n_dst * color > 1:
+        if n_dst * color < -1:
             raise IllegalMoveError(f"destination point {move.dst} is blocked by other color")
         elif move.hit != (n_dst == -color):
             negate = 'not ' if move.hit else ''
@@ -24,31 +24,30 @@ def assert_legal_move(move: Move, board: Board, pseudolegal: bool = False):
     elif move.hit is True:
         raise ImpossibleMoveError("`Move.hit` is True for a bearing off move")
 
-    if not pseudolegal:
-        if not 1 <= move.pips() <= 6:
-            raise IllegalMoveError(f"would not move 1 - 6 pips, but {move.pips()}")
+    if not 1 <= move.pips() <= 6:
+        raise IllegalMoveError(f"would not move 1 - 6 pips, but {move.pips()}")
 
-        if board.turn != Color.NONE and color != board.turn:
-            raise IllegalMoveError(f"checker's color {color} on {move.src} does not match board turn {board.turn}")
+    if board.turn != Color.NONE and color != board.turn:
+        raise IllegalMoveError(f"checker's color {color} on {move.src} does not match board turn {board.turn}")
 
-        if ((color == Color.WHITE and board.points[25] > 0 and move.src != 25)
-                or (color == Color.BLACK and board.points[0] < 0 and move.src != 0)):
-            raise IllegalMoveError(f"checkers on bar need to be moved first for {color}")
+    if ((color == Color.WHITE and board.points[25] > 0 and move.src != 25)
+            or (color == Color.BLACK and board.points[0] < 0 and move.src != 0)):
+        raise IllegalMoveError(f"checkers on bar need to be moved first for {color}")
 
-        if move.bearing_off() and not board.bearing_off_allowed(color):
-            raise IllegalMoveError(f"bearing off when not all checkers on home board is not allowed (turn: {color})")
+    if move.bearing_off() and not board.bearing_off_allowed(color):
+        raise IllegalMoveError(f"bearing off when not all checkers on home board is not allowed (turn: {color})")
 
 
-def is_legal_move(move: Move, board: Board, pseudolegal: bool = False) -> bool:
+def is_legal_move(move: Move, board: Board) -> bool:
     """Check if the given move is (pseudo-)legal. (Includes checking the `hit` property.)"""
     try:
-        assert_legal_move(move, board, pseudolegal=pseudolegal)
+        assert_legal_move(move, board)
     except IllegalMoveError:
         return False
     return True
 
 
-def build_legal_move(board: Board, src: int, pips: int, pseudolegal: bool = False) -> Move:
+def build_legal_move(board: Board, src: int, pips: int) -> Move:
     """Build a (pseudo-)legal move that starts at `src` using a die with `pips` eyes."""
     color = board.color_at(src)
     if color == Color.NONE:
@@ -56,19 +55,20 @@ def build_legal_move(board: Board, src: int, pips: int, pseudolegal: bool = Fals
 
     dst = src - color * pips
     if dst < 0 or 25 < dst:
-        if not pseudolegal and board.checkers_before(src, color):
+        if board.checkers_before(src, color):
             raise IllegalMoveError(f"(still) need to bear off exactly from {src}")
         dst = max(0, min(dst, 25))
 
     hit = (0 < dst < 25) and bool(board.points[dst] == -color)
 
     move = Move(src, dst, hit)
-    assert_legal_move(move, board, pseudolegal=pseudolegal)
+    # TODO: this has probably some redundancy - optimize!
+    assert_legal_move(move, board)
 
     return move
 
 
-def build_legal_moves(board: Board, pips: int, pseudolegal: bool = False) -> list[Move]:
+def build_legal_moves(board: Board, pips: int) -> list[Move]:
     """Build all (pseudo-)legal game that that use a die with `pips` eyes."""
     if not 1 <= pips <= 6:
         raise ValueError(f"pips / dice number must be 1, 2, 3, 4, 5, or 6; got {pips}")
@@ -76,7 +76,7 @@ def build_legal_moves(board: Board, pips: int, pseudolegal: bool = False) -> lis
     moves = []
     for src in range(26):
         try:
-            m = build_legal_move(board, src, pips, pseudolegal=pseudolegal)
+            m = build_legal_move(board, src, pips)
             moves.append(m)
         except IllegalMoveError:
             pass

@@ -133,6 +133,7 @@ class BoardDrawing(Drawing):
             return 0.0  # 0.2 * (np.random.rand() - 0.5)
 
         ds = self.ds
+        # TODO: centre the dice in the board
         off, dist = (1.0, 1.7) if len(dice) > 2 else (1.2, 2.2)
         g = self.g()
         for i, (d, c) in enumerate(zip(dice, dice_colors)):

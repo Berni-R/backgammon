@@ -2,7 +2,7 @@ from typing import Iterable
 from functools import lru_cache
 import numpy as np
 
-from ..core import Color, Move, Board
+from ..core import Color, Move, Board, BLACK_BAR, WHITE_BAR
 from ..game import Agent, GameState, hit_prob
 
 
@@ -15,27 +15,31 @@ class SimpleAgent(Agent):
         player               | up to 1 |   3  |   5  |  7 points
        ----------------------|---------|------|------|-----------
         eval_randomize = 0   |   2000  | 2000 | 2000 |    2000
-        eval_randomize = 1   |   2031  | 1951 | 1840 |    1795
-        eval_randomize = 2   |   1977  | 1940 | 1822 |    1766
-        eval_randomize = 4   |   1869  | 1805 | 1664 |    1562
-        eval_randomize = 7   |   1769  | 1577 | 1471 |    1400
-        eval_randomize = 13  |   1547  | 1394 | 1323 |    1328
-        eval_randomize = 22  |   1436  | 1221 | 1156 |    1069
-        eval_randomize = 38  |   1289  | 1006 | 1015 |     981
-        eval_randomize = 65  |   1256  |  924 |  914 |     803
-        eval_randomize = 110 |   1124  |  828 |  766 |     697
-        eval_randomize = 186 |   1140  |  773 |  671 |     594
-        eval_randomize = 315 |   1136  |  763 |  639 |     585
-        RandomPlayer()       |   1053  |  655 |  527 |     498
+        eval_randomize = 1   |   1962  | 1881 | 1937 |    1667
+        eval_randomize = 2   |   1936  | 1768 | 1800 |    1663
+        eval_randomize = 3   |   1829  | 1732 | 1676 |    1643
+        eval_randomize = 4   |   1736  | 1613 | 1635 |    1548
+        eval_randomize = 5   |   1597  | 1604 | 1482 |    1443
+        eval_randomize = 7   |   1617  | 1435 | 1340 |    1244
+        eval_randomize = 8   |   1572  | 1416 | 1254 |    1231
+        eval_randomize = 13  |   1415  | 1105 | 1078 |    1037
+        eval_randomize = 17  |   1320  | 1132 |  971 |     919
+        eval_randomize = 22  |   1199  |  915 |  867 |     789
+        eval_randomize = 38  |    982  |  829 |  665 |     700
+        eval_randomize = 65  |    913  |  713 |  481 |     420
+        eval_randomize = 110 |    870  |  533 |  459 |     317
+        eval_randomize = 186 |    842  |  637 |  442 |     259
+        eval_randomize = 315 |    754  |  558 |  317 |     263
+        RandomAgent()        |    727  |  430 |  274 |     159
 
-    Note the roughly log-linear decrease in rating with `eval_randomize `.
+    Note the roughly log-linear decrease in rating with `eval_randomize`.
     Furthermore, this descrese itself seems to scale with roughly n^(1/4), where n is the match length. So, in our case
     this is not the n^(1/2) that the FIBS rating system employs. (We do not simply have n games to win, but doubling
     strategies play an important role, too.)
-    A fit to empirical data yields the rating estimate (2060+-15) - (136+-3) * n^(0.23+-0.01) * log2(eval_randomize),
-    as long as eval_randomize >= 2 and the estiamte is >~ 750.
-    The above table also implies that the (default) RandomPlayer is about 1000 rating points weaker than the (default)
-    SimplePlayer for a single points match (and more for longer games).
+    A fit to empirical data yields the rating estimate (2098+-16) - (184+-6) * n^(0.23+-0.02) * log2(eval_randomize),
+    as long as eval_randomize >= 2 / the estiamte is < 2000.
+    The above table also implies that the (default) RandomPlayer is about 1300 rating points weaker than the (default)
+    SimplePlayer for a single points match (and even more for longer matches).
 
     Args:
         doubling_th (float):        Player will double the stake, if they judge the winning probability to be higher
@@ -57,8 +61,9 @@ class SimpleAgent(Agent):
             doubling_th: float = 0.8,
             eval_randomize: float = 0.0,
             win_prob_randomize: float = 0.0,
-            blot_penalty: float = 0.1,
+            blot_penalty: float = 0.3,
             bear_off_bonus: float = 1.0,
+            illegal_hit_weight: float = 0.7,
     ):
         super().__init__()
         self.doubling_th = doubling_th
@@ -66,6 +71,7 @@ class SimpleAgent(Agent):
         self.win_prob_randomize = win_prob_randomize
         self.blot_penalty = blot_penalty
         self.bear_off_bonus = bear_off_bonus
+        self.illegal_hit_weight = illegal_hit_weight
 
         self.eval_board = lru_cache(maxsize=128)(self._eval_board)
         self.eval_move = lru_cache(maxsize=128)(self._eval_move)
@@ -126,11 +132,15 @@ class SimpleAgent(Agent):
         # hit prob. * pips -> avoid own blots
         val = 0
         for p, pips_add in zip(blots_at, pips_add_if_hit):
-            # TODO: restrict to legal only / reduce impact of those, that cannot be hit because opponent must clear bar
-            val += hit_prob(board, p, opponent, only_legal=False) * pips_add
+            prob = hit_prob(board, p, opponent, only_legal=True)
+            val += prob * pips_add
+            bar = {Color.BLACK: BLACK_BAR, Color.WHITE: WHITE_BAR}[viewpoint]
+            if board.points[bar] != 0:
+                val -= (1 - self.illegal_hit_weight) * prob * pips_add
+                val += self.illegal_hit_weight * hit_prob(board, p, opponent, only_legal=False) * pips_add
         val_tot -= val
 
-        # penalise blots
+        # generally penalise blots
         val = self.blot_penalty * blots_mask.sum()
         val_tot -= val
 

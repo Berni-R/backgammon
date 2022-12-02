@@ -14,6 +14,8 @@ class ActionType(Enum):
     DOUBLE = auto()
     TAKE = auto()
     DROP = auto()
+    DICEROLL = auto()
+    FINISH_TURN = auto()
 
 
 @dataclass(slots=True)
@@ -27,7 +29,7 @@ class Transition:
     state: GameState
     action: Action
     next_state: GameState
-    reward: float
+    reward: int
 
 
 class Game:
@@ -98,6 +100,49 @@ class Game:
             return GameResult(self.state.board.turn, self.state.board.stake, WinType.NORMAL)
         return self.state.board.result()
 
+    def _step(
+            self,
+            agents: Agent | dict[Color, Agent],
+            points: Iterable[int] = (0, 0),
+            match_ends_at: int = 1,
+            allow_doubling: bool = True,
+    ) -> tuple[Action | None, int]:
+        if self.game_over():
+            return None, self.result().stake
+
+        if isinstance(agents, Agent):
+            agents = {Color.BLACK: agents, Color.WHITE: agents}
+
+        if len(self.history) > 0 and self.history[-1].action.type == ActionType.DOUBLE:
+            agent = agents[self.state.board.turn.other()]
+            if agent.will_take_doubling(self.state, points, match_ends_at):
+                action = Action(None, ActionType.TAKE)
+                self.state.board.doubling_turn = self.state.board.turn.other()
+                self.state.board.stake *= 2
+                return action, 0
+            else:
+                action = Action(None, ActionType.DROP)
+                return action, -self.state.board.stake  # WinType is always NORMAL
+
+        if len(self.state.dice) == 0:
+            if allow_doubling and len(self.history) > 0 and self.state.board.can_couble():
+                agent = agents[self.state.board.turn]
+                if agent.will_double(self.state, points, match_ends_at):
+                    action = Action(None, ActionType.DOUBLE)
+                    return action, 0
+
+            self.state.roll_dice()
+            return Action(None, ActionType.DICEROLL), 0
+
+        if len(self.state.build_legal_moves()) == 0:
+            self.finish_turn()
+            return Action(None, ActionType.FINISH_TURN), 0
+
+        agent = agents[self.state.board.turn]
+        move = agent.choose_move(self.state)
+        self.do_move(move)
+        return Action(move), self.history[-1].reward
+
     def step(
             self,
             agents: Agent | dict[Color, Agent],
@@ -105,42 +150,9 @@ class Game:
             match_ends_at: int = 1,
             allow_doubling: bool = True,
     ) -> Action | None:
-        if self.game_over():
-            return None
-        if isinstance(agents, Agent):
-            agents = {Color.BLACK: agents, Color.WHITE: agents}
-
-        if len(self.history) > 0 and self.history[-1].action.type == ActionType.DOUBLE:
-            state = self.state.copy()
-            agent = agents[self.state.board.turn.other()]
-            if agent.will_take_doubling(self.state, points, match_ends_at):
-                action = Action(None, ActionType.TAKE)
-                self.state.board.doubling_turn = self.state.board.turn.other()
-                self.state.board.stake *= 2
-                reward = 0
-            else:
-                action = Action(None, ActionType.DROP)
-                reward = -self.state.board.stake  # WinType is always NORMAL
-            self.history.append(Transition(state, action, self.state.copy(), reward))
-            return action
-
-        if len(self.state.dice) == 0:
-            if allow_doubling and len(self.history) > 0 and self.state.board.can_couble():
-                agent = agents[self.state.board.turn]
-                if agent.will_double(self.state, points, match_ends_at):
-                    action = Action(None, ActionType.DOUBLE)
-                    state = self.state.copy()
-                    self.history.append(Transition(state, action, state, 0))
-                    return action
-
-            self.state.roll_dice()
-            return None
-
-        if len(self.state.build_legal_moves()) == 0:
-            self.finish_turn()
-            return None
-
-        agent = agents[self.state.board.turn]
-        move = agent.choose_move(self.state)
-        self.do_move(move)
-        return Action(move)
+        prev_state = self.state.copy()
+        action, reward = self._step(agents, points, match_ends_at, allow_doubling)
+        if action is not None and action.type != ActionType.MOVE:
+            transition = Transition(prev_state, action, self.state.copy(), reward)
+            self.history.append(transition)
+        return action
