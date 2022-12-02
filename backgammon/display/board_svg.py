@@ -74,17 +74,14 @@ class BoardDrawing(DrawingPlus):
         if len(dice_colors) != len(dice):
             raise ValueError(f"length of dice colors ({len(dice_colors)}) does not match the dice ({len(dice)})")
 
-        def rand():
-            return 0.0  # 0.2 * (np.random.rand() - 0.5)
-
         ds = self.ds
-        # TODO: centre the dice in the board
-        off, dist = (1.0, 1.7) if len(dice) > 2 else (1.2, 2.2)
+        dist = 1.7
+        space = (ds.width - ds.bar_width) / 2
         g = self.g()
         for i, (d, c) in enumerate(zip(dice, dice_colors)):
-            x = 0.5 * ds.width + ds.bar_width / 2 + ((off + i) * dist + rand()) * ds.die_size
-            y = 0.5 * ds.height + 0.4 * rand() * ds.scale
-            die = self.die((x, y), d, fill=c)  # , rotate=360 * np.random.rand())
+            x = 0.5 * ds.width + ds.bar_width / 2 + space / 2 + (i - (len(dice) - 1) / 2) * dist * ds.die_size
+            y = 0.5 * ds.height
+            die = self.die((x, y), d, fill=c)
             g.add(die)
         return g
 
