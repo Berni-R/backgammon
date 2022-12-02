@@ -1,19 +1,19 @@
 import numpy as np
 
-from ..core import Color, Board, BLACK_BAR, WHITE_BAR
+from backgammon.core import Color, Board, BLACK_BAR, WHITE_BAR
 
 
 def hit_prob(board: Board, point: int, by: Color | None = None, only_legal: bool = False) -> float:
     """Calculate the probability by which the given point can be hit in the next move, given it is legal.
 
     Args:
-        board (Board):      The board on which to calculate the hitting probabilities.
+        board (Board):      The board on which / the board for which to calculate the hitting probabilities.
         point (int):        The point in question of being hit. This can be any point, also empty ones and those of
                             the same color as `by`.
         by (Color):         By which color the point might be hit. If it is None, it defaults to the opposing color
-                            of which the checkers on the given `point` are.
-        only_legal (bool):  Restrict to legals game. This means, that if there are checkers of the hitter's color
-                            on the bar, only considers those as potential hitters, ignore all other checkers.
+                            of which the board on the given `point` are.
+        only_legal (bool):  Restrict to legals game. This means, that if there are board of the hitter's color
+                            on the bar, only considers those as potential hitters, ignore all other board.
 
     Returns:
         p (float):          The probabilty by which the given point could be hit in the next move.

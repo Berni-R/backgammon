@@ -1,8 +1,8 @@
 from typing import Iterable
 import random
 
-from ..core import Move
-from ..game import Agent, GameState
+from ..core import Move, GameState
+from ..game import Agent
 
 
 class RandomAgent(Agent):

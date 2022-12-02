@@ -1,21 +1,20 @@
-from typing import Any, Literal, Iterable
-from svgwrite.drawing import Drawing  # type: ignore
+from typing import Any, Iterable
 from svgwrite import shapes, container, gradients  # type: ignore
-from svgwrite.utils import strlist  # type: ignore
-import numpy as np
 
-from ..core import Color, Board
+from .drawing_plus import DrawingPlus
+from ..core import Color
 from .style import DisplayStyle
 from .tools import brighten_color
+from ..core.board import Board
 
 
-class BoardDrawing(Drawing):
+class BoardDrawing(DrawingPlus):
 
     def __init__(
             self,
             ds: DisplayStyle,
-            size: tuple[float, float] | None = None,
-            origin: tuple[float, float] | None = None,
+            size: Iterable[float | int] | None = None,
+            origin: Iterable[float | int] | None = None,
             filename: str = "noname.svg",
             profile: str = "full",
             **extra
@@ -27,19 +26,10 @@ class BoardDrawing(Drawing):
             )
         if origin is None:
             origin = tuple(ds.boarder)  # type: ignore
+        super().__init__(size=size, origin=origin, filename=filename, profile=profile, **extra)
 
         self.ds = ds
-        self.origin = origin
-
-        super().__init__(filename=filename, size=size, profile=profile, **extra)
         self._def_checkers()
-
-    def add(self, element):
-        # left append the translation - a simple `element.translate` would mess with other transforms
-        transforms = element.attribs.get(element.transformname, '')
-        shift = "translate(%s)" % strlist(self.origin)
-        element[element.transformname] = ("%s %s" % (shift, transforms)).strip()
-        super().add(element)
 
     def _def_checkers(self):
         for color in (Color.BLACK, Color.WHITE):
@@ -65,65 +55,20 @@ class BoardDrawing(Drawing):
         name = f"#checker_{color.name}"
         return self.use(name, center, **extra)
 
-    def rect(self, insert: tuple, size: tuple,
-             stroke_width: float = 0.0, line_loc: Literal['outside', 'inside', 'mid'] = 'mid', **extra) -> shapes.Rect:
-        x, y = insert
-        w, h = size
-
-        if line_loc == 'outside':
-            x = x - stroke_width / 2
-            y = y - stroke_width / 2
-            w += stroke_width
-            h += stroke_width
-        elif line_loc == 'inside':
-            x = x + stroke_width / 2
-            y = y + stroke_width / 2
-            w -= stroke_width
-            h -= stroke_width
-        elif line_loc != 'mid':
-            raise ValueError(f"Unknown line location '{line_loc}'")
-
-        # these factory methods like Drawing.rect are not methods, but inherit the __getattr__ from ElementFactory...
-        # ... in effect they, however, only add `factory=self`. Hence:
-        extra['factory'] = self
-        return shapes.Rect((x, y), (w, h), stroke_width=stroke_width, **extra)
-
-    def die(self, center: tuple, n: int | str, fill: str | None = None, size: float | None = None,
+    def die(self, center: tuple, n: int | str, size: float | None = None, fill: str | None = None,
+            point_color: str = 'black', stroke_width: float | None = None, font_family: str | None = None,
             rotate: float = 0.0) -> container.Group:
-        x, y = center
         if size is None:
             size = self.ds.die_size
         if fill is None:
             fill = self.ds.die_color
+        if stroke_width is None:
+            stroke_width = self.ds.lw / 2
+        if font_family is None:
+            font_family = self.ds.font
 
-        die = self.g()
-
-        empty_die = self.rect((x-size/2, y-size/2), (size, size), rx=0.15*size, ry=0.15*size,
-                              stroke="black", stroke_width=self.ds.lw/2, line_loc='inside', fill=fill)
-        die.add(empty_die)
-
-        dark_color = "black"
-        if isinstance(n, (int, np.int_)):
-            pos: list[list[tuple[float, float]]] = [
-                [],
-                [(0.50, 0.50)],
-                [(0.25, 0.25), (0.75, 0.75)],
-                [(0.25, 0.25), (0.50, 0.50), (0.75, 0.75)],
-                [(0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25)],
-                [(0.25, 0.25), (0.25, 0.75), (0.50, 0.50), (0.75, 0.75), (0.75, 0.25)],
-                [(0.25, 0.25), (0.25, 0.50), (0.25, 0.75), (0.75, 0.75), (0.75, 0.50), (0.75, 0.25)],
-            ]
-            for xi, yi in pos[n]:
-                point = self.circle((x + (xi-0.5) * size, y + (yi-0.5) * size), r=0.09 * size, fill=dark_color)
-                die.add(point)
-        else:  # isinstance(n, str):
-            text = self.text(n, (x, y), dominant_baseline="central", text_anchor="middle",
-                             font_size=0.65 * size, font_family=self.ds.font, fill=dark_color)
-            die.add(text)
-
-        die.rotate(rotate, (x, y))
-
-        return die
+        return super(BoardDrawing, self).die(center=center, n=n, size=size, fill=fill, point_color=point_color,
+                                             stroke_width=stroke_width, font_family=font_family, rotate=rotate)
 
     def dice(self, dice: list[int], dice_colors: list[str]) -> container.Group:
         if len(dice_colors) != len(dice):
@@ -230,16 +175,16 @@ class BoardDrawing(Drawing):
 
     def all_checkers(self, board: Board) -> container.Group:
         ds = self.ds
-        checkers = self.g()
+        cks = self.g()
 
-        # checkers on points & bar
+        # board on points & bar
         for pnt in range(len(board.points)):
             color = board.color_at(pnt)
             for n in range(abs(board.points[pnt])):
                 xy = ds.checker_pos(pnt, n)
-                checkers.add(self.checker(xy, color))
+                cks.add(self.checker(xy, color))
 
-        # borne off checkers
+        # borne off board
         for color in (Color.BLACK, Color.WHITE):
             off = max(0, 15 - board.checkers_count(color))
             if color == Color.WHITE:
@@ -253,26 +198,28 @@ class BoardDrawing(Drawing):
                 r = self.rect((x, y - color * n * ds.checkers_height),
                               (ds.scale, ds.checkers_height),
                               fill=c, stroke=brighten_color(c, 0.5), stroke_width=ds.lw/2, line_loc='inside')
-                checkers.add(r)
+                cks.add(r)
 
-        return checkers
+        return cks
 
     def board(
             self,
             board: Board,
             dice: Iterable[int] | None = None,
             dice_colors: Iterable[str] | None = None,
+            doubling_die: tuple[int, Color] | None = None,
+            turn_marker: Color = Color.NONE,
             highlight_pnt: Iterable[int] | dict[int, Any] | None = None,
             highlight_chk: Iterable[int | tuple[int, int]] | dict[int | tuple[int, int], Any] | None = None,
             swap_ints: bool = True,
             show_pips: bool = True,
     ) -> container.Group:
-        # TODO: highlight borne off checkers
+        # TODO: highlight borne off board
         ds = self.ds
         b = self.g()
 
         # background / board
-        b.add(self.empty_board(flip_points=swap_ints and board.turn == Color.BLACK))
+        b.add(self.empty_board(flip_points=swap_ints))
 
         # highlight points
         if highlight_pnt is not None:
@@ -284,18 +231,10 @@ class BoardDrawing(Drawing):
                 # TODO: draw line inside the triangle
                 b.add(self.point_triangle(pnt, fill='none', stroke=color, stroke_width=ds.lw))
 
-        # turn marker
-        if board.turn != Color.NONE:
-            b.add(self.circle(**ds.turn_marker_attrs(board.turn)))
-
-        # doubling die
-        if board.stake != 1 and board.doubling_turn != Color.NONE:
-            b.add(self.die(ds.doubling_die_pos(board.doubling_turn), str(board.stake)))
-
-        # checkers
+        # board
         b.add(self.all_checkers(board))
 
-        # highlight checkers
+        # highlight board
         if highlight_chk is not None:
             if not isinstance(highlight_chk, dict):
                 highlight_chk = {pnt: ds.highlight_color_1 for pnt in highlight_chk}
@@ -313,16 +252,21 @@ class BoardDrawing(Drawing):
                 attrs = ds.pip_text_attrs(color)
                 b.add(self.text(f"{board.pip_count(color)}", **attrs))
 
+        # doubling die
+        if doubling_die is not None:
+            stake, c = doubling_die
+            if stake != 1 and c != Color.NONE:
+                b.add(self.die(ds.doubling_die_pos(c), str(stake)))
+
+        # turn marker
+        if turn_marker != Color.NONE:
+            b.add(self.circle(**ds.turn_marker_attrs(turn_marker)))
+
         # dice
         if dice is not None:
             dice = list(dice)
             if dice_colors is None:
-                if board.turn is Color.BLACK:
-                    dice_colors = [ds.chk_dark] * len(dice)
-                elif board.turn is Color.WHITE:
-                    dice_colors = [ds.chk_light] * len(dice)
-                else:
-                    raise ValueError("Need to specify dice colors (no turn given)")
+                raise ValueError("Need to specify dice colors")
             dice_colors = list(dice_colors)
 
             b.add(self.dice(dice, dice_colors))

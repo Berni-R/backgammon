@@ -1,6 +1,6 @@
 from typing import Iterable
 
-from backgammon import GameState, Move
+from backgammon.core import GameState, Move
 from backgammon.game.agent import Agent
 
 

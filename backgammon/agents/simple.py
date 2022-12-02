@@ -2,8 +2,9 @@ from typing import Iterable
 from functools import lru_cache
 import numpy as np
 
-from ..core import Color, Move, Board, BLACK_BAR, WHITE_BAR
-from ..game import Agent, GameState, hit_prob
+from ..core import Color, Move, Board, GameState, BLACK_BAR, WHITE_BAR
+from ..game import Agent
+from ..misc import hit_prob
 
 
 class SimpleAgent(Agent):
@@ -53,7 +54,7 @@ class SimpleAgent(Agent):
                                     Like `eval_randomize` this adds a normal random variable to the winning probability
                                     with the given value as standard deviation.
         blot_penalty (float):       Weight for the number of blots of own color to penelise the evaluation.
-        bear_off_bonus (float):     Weight for the number of born off checkers of own color to improve the evaluation.
+        bear_off_bonus (float):     Weight for the number of born off board of own color to improve the evaluation.
     """
 
     def __init__(
@@ -76,13 +77,13 @@ class SimpleAgent(Agent):
         self.eval_board = lru_cache(maxsize=128)(self._eval_board)
         self.eval_move = lru_cache(maxsize=128)(self._eval_move)
 
-    def est_win_prob(self, board: Board, viewpoint: Color | None = None) -> float:
+    def est_win_prob(self, state: GameState, viewpoint: Color | None = None) -> float:
         """Estimate the winning probability (based on the pip count and empirical win rates of RandomPlayer)."""
         # this is only based on pip count - actual checker distribution (such as blots) is entirely ignored
         if viewpoint is None:
-            viewpoint = board.turn
+            viewpoint = state.turn
 
-        pips = board.pip_count().astype(float)
+        pips = state.board.pip_count().astype(float)
 
         # this is an empirical fit to the results of two RandomPlayer playing against each other
         pip_max = np.max(pips)
@@ -94,7 +95,7 @@ class SimpleAgent(Agent):
 
         return win_prob
 
-    def _eval_board(self, board: Board, viewpoint: Color | None = None) -> float:
+    def _eval_board(self, board: Board, viewpoint: Color) -> float:
         """Give the board some evaluation from the given viewpoint. Higher is better.
 
         Heuristics used:
@@ -106,13 +107,11 @@ class SimpleAgent(Agent):
             [x] substract <hitting prob * pip_count> from value:
                 * if creating blots, make being hit more unlikely
                 * generally avoid blots closer to the home board more than those to the opponent's home board
-            [x] checkers borne off increase value:
+            [x] board borne off increase value:
                 * bore off in single run if possible instead of moving within home board (e.g. 2/off better than 5/3)
-            [ ] little encourage for 3+ over 2 checkers at points
-            [ ] discourage all checkers on single point
+            [ ] little encourage for 3+ over 2 board at points
+            [ ] discourage all board on single point
         """
-        if viewpoint is None:
-            viewpoint = board.turn
         if viewpoint == Color.NONE:
             raise ValueError(f"viewpoint has to be either Color.BLACK or Color.WHITE, got {viewpoint}")
 
@@ -150,24 +149,22 @@ class SimpleAgent(Agent):
 
         return val_tot
 
-    def _eval_move(self, state: GameState, move: Move, viewpoint: Color | None = None) -> float:
+    def _eval_move(self, state: GameState, move: Move, viewpoint: Color) -> float:
         # viewpoint of current player, not the one after doing the action!
-        if viewpoint is None:
-            viewpoint = state.board.turn
         if viewpoint == Color.NONE:
             raise ValueError(f"viewpoint has to be either Color.BLACK or Color.WHITE, got {viewpoint}")
 
-        i = state.do_move(move)
-        if any(state.dice_unused):
+        k = state.do_move(move)
+        if not all(state.dice_used):
             legal_moves = state.build_legal_moves()
             if len(legal_moves) == 0:
                 val = self.eval_board(state.board, viewpoint)
             else:
                 # call the cached version (no leading underscore) of this function!
-                val = max(self.eval_move(state, m, viewpoint=viewpoint) for m in legal_moves)
+                val = max(self.eval_move(state, m, viewpoint) for m in legal_moves)
         else:
             val = self.eval_board(state.board, viewpoint)
-        state.undo_move(move, i)
+        state.undo_move(move, k, checked=False)
 
         return val
 
@@ -175,7 +172,7 @@ class SimpleAgent(Agent):
         legal_moves = state.build_legal_moves()
         assert len(legal_moves) > 0, "No game to choose from"
 
-        move_eval = np.fromiter((self.eval_move(state, move, state.board.turn) for move in legal_moves), float)
+        move_eval = np.fromiter((self.eval_move(state, move, state.turn) for move in legal_moves), float)
 
         if eval_randomize is None:
             eval_randomize = self.eval_randomize
@@ -188,7 +185,7 @@ class SimpleAgent(Agent):
 
     def will_double(self, state: GameState, points: Iterable[int], match_ends_at: int) -> bool:
         # TODO: use points and match_ends_at
-        win_prob = self.est_win_prob(state.board)
+        win_prob = self.est_win_prob(state)
         if self.eval_randomize:
             win_prob += np.random.normal(scale=self.win_prob_randomize)
 
@@ -196,7 +193,7 @@ class SimpleAgent(Agent):
 
     def will_take_doubling(self, state: GameState, points: Iterable[int], match_ends_at: int) -> bool:
         # TODO: use points and match_ends_at
-        win_prob = self.est_win_prob(state.board)
+        win_prob = self.est_win_prob(state)
         if self.eval_randomize:
             win_prob += np.random.normal(scale=self.win_prob_randomize)
 

@@ -11,7 +11,7 @@ from .defs import rand_board, BOARDS
 
 def build_random_move(board: Board, color: Color) -> Move:
     if board.checkers_count(color) == 0:
-        raise ValueError(f"no checkers for color {color} on board")
+        raise ValueError(f"no board for color {color} on board")
 
     while True:
         points_of_color = np.where(np.sign(board.points) == color)[0]
@@ -23,7 +23,7 @@ def build_random_move(board: Board, color: Color) -> Move:
             return Move(src, dst, hit=hit)
 
 
-@pytest.mark.parametrize('board', BOARDS + [rand_board(False) for _ in range(20)])
+@pytest.mark.parametrize('board', BOARDS + [rand_board() for _ in range(20)])
 def test_do_undo_random_moves(board: Board):
     for color in [Color.BLACK, Color.WHITE]:
         if board.checkers_count(color) == 0:
@@ -34,18 +34,12 @@ def test_do_undo_random_moves(board: Board):
             board_orig = board.copy()
             board.do_move(move)
 
-            # the points, but nothing else should have changed
-            assert np.any(board.points != board_orig.points)
-            assert board.turn == board_orig.turn
-            assert board.stake_pow == board_orig.stake_pow
-            assert board.doubling_turn == board_orig.doubling_turn
-
             if move.bearing_off():
                 # only the moved checker was removed form board
                 assert board.checkers_count(color) == board_orig.checkers_count(color) - 1
                 assert board.checkers_count(color.other()) == board_orig.checkers_count(color.other())
             else:
-                # no checkers are lost
+                # no board are lost
                 assert np.all(board.checkers_count() == board_orig.checkers_count())
                 # have checker(s) at destination of the same color as those that were on source
                 assert np.sign(board.points[move.dst]) == board_orig.color_at(move.src)
@@ -61,4 +55,4 @@ def test_do_undo_random_moves(board: Board):
 
             # undoing must revert to original state
             board.undo_move(move)
-            assert board == board_orig
+            assert board == board_orig, move

@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from backgammon.core import Color, Board
-from backgammon.game.hit_prob import hit_prob
+from backgammon.misc.hit_prob import hit_prob
 
 
 def test_hit_prob_raw():
@@ -15,7 +15,7 @@ def test_hit_prob_raw():
     ]) / 36
 
     board = Board(points=np.zeros(26))
-    board.points[1] = Color.BLACK  # hit a black checkers at point 1
+    board.points[1] = Color.BLACK  # hit a black board at point 1
     probs = []
     for i in range(1, 4 * 6 + 1):
         board.points[1 + i] = Color.WHITE
@@ -49,15 +49,16 @@ def test_hit_prob_bad_color(pnt: int):
 def test_hit_prob_blockers():
     # simple blocks (with shifted checker to hit)
     board = Board(points=np.zeros(26))
+
     i = 17
     board.points[i] = Color.WHITE  # to be hit
-    board.points[i - 4] = 3 * Color.BLACK  # multiple checkers at start
+    board.points[i - 4] = 3 * Color.BLACK  # multiple board at start
     assert hit_prob(board, i) * 36 == 15
     board.points[i - 2] = Color.WHITE  # one checker does not block (but can be hit - not asked for, though)
     assert hit_prob(board, i) * 36 == 15
-    board.points[i - 2] = 2 * Color.BLACK  # neither do multiple own checkers, but they actually also can hit
+    board.points[i - 2] = 2 * Color.BLACK  # neither do multiple own board, but they actually also can hit
     assert hit_prob(board, i) * 36 == 23  # > 15
-    board.points[i - 2] = 2 * Color.WHITE  # but two opponent checkers do block
+    board.points[i - 2] = 2 * Color.WHITE  # but two opponent board do block
     assert hit_prob(board, i) * 36 == 13  # < 15
 
     # multiple sources

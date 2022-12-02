@@ -1,8 +1,8 @@
-from ..core import Color, ImpossibleMoveError, IllegalMoveError
-from ..core import Move, Board
+from backgammon.core import Color, WHITE_BAR, BLACK_BAR, ImpossibleMoveError, IllegalMoveError
+from backgammon.core import Move, Board
 
 
-def assert_legal_move(move: Move, board: Board):
+def assert_legal_move(move: Move, board: Board, turn: Color = Color.NONE):
     """Assert that the given move is legal. (Includes checking the `hit` property.)"""
     if move.src < 0 or 25 < move.src:
         raise ImpossibleMoveError(f"move source {move.src} not on board")
@@ -27,28 +27,28 @@ def assert_legal_move(move: Move, board: Board):
     if not 1 <= move.pips() <= 6:
         raise IllegalMoveError(f"would not move 1 - 6 pips, but {move.pips()}")
 
-    if board.turn != Color.NONE and color != board.turn:
-        raise IllegalMoveError(f"checker's color {color} on {move.src} does not match board turn {board.turn}")
+    if turn != Color.NONE and color != turn:
+        raise IllegalMoveError(f"checker's color {color} on {move.src} does not match turn {turn}")
 
-    if ((color == Color.WHITE and board.points[25] > 0 and move.src != 25)
-            or (color == Color.BLACK and board.points[0] < 0 and move.src != 0)):
+    if ((color == Color.WHITE and board.points[WHITE_BAR] > 0 and move.src != WHITE_BAR)
+            or (color == Color.BLACK and board.points[BLACK_BAR] < 0 and move.src != BLACK_BAR)):
         raise IllegalMoveError(f"checkers on bar need to be moved first for {color}")
 
     if move.bearing_off() and not board.bearing_off_allowed(color):
         raise IllegalMoveError(f"bearing off when not all checkers on home board is not allowed (turn: {color})")
 
 
-def is_legal_move(move: Move, board: Board) -> bool:
-    """Check if the given move is (pseudo-)legal. (Includes checking the `hit` property.)"""
+def is_legal_move(move: Move, board: Board, turn: Color = Color.NONE) -> bool:
+    """Check if the given move is legal. (Includes checking the `hit` property.)"""
     try:
-        assert_legal_move(move, board)
+        assert_legal_move(move, board, turn)
     except IllegalMoveError:
         return False
     return True
 
 
-def build_legal_move(board: Board, src: int, pips: int) -> Move:
-    """Build a (pseudo-)legal move that starts at `src` using a die with `pips` eyes."""
+def build_legal_move(board: Board, src: int, pips: int, turn: Color = Color.NONE) -> Move:
+    """Build a legal move that starts at `src` using a die with `pips` eyes."""
     color = board.color_at(src)
     if color == Color.NONE:
         raise ImpossibleMoveError(f"no checkers to move from index {src}")
@@ -63,20 +63,23 @@ def build_legal_move(board: Board, src: int, pips: int) -> Move:
 
     move = Move(src, dst, hit)
     # TODO: this has probably some redundancy - optimize!
-    assert_legal_move(move, board)
+    assert_legal_move(move, board, turn)
 
     return move
 
 
-def build_legal_moves(board: Board, pips: int) -> list[Move]:
-    """Build all (pseudo-)legal game that that use a die with `pips` eyes."""
-    if not 1 <= pips <= 6:
-        raise ValueError(f"pips / dice number must be 1, 2, 3, 4, 5, or 6; got {pips}")
+def build_legal_moves(board: Board, pips: int, turn: Color) -> list[Move]:
+    """Build all legal game that that use a die with `pips` eyes."""
+    # if not 1 <= pips <= 6:
+    #     raise ValueError(f"pips / dice number must be 1, 2, 3, 4, 5, or 6; got {pips}")
 
     moves = []
     for src in range(26):
+        color = board.color_at(src)
+        if color != turn and turn != Color.NONE:
+            continue
         try:
-            m = build_legal_move(board, src, pips)
+            m = build_legal_move(board, src, pips, turn)
             moves.append(m)
         except IllegalMoveError:
             pass

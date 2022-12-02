@@ -3,8 +3,7 @@ import numpy as np
 from numpy.typing import NDArray
 from tqdm.auto import tqdm  # type: ignore
 
-from ..core import Color
-from .game_state import GameState
+from ..core import Color, GameState
 from .agent import Agent
 from .game import Game, Action
 

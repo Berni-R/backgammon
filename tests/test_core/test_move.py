@@ -11,8 +11,8 @@ def test_move_str_repr():
 
     move = Move(4, 6, True)
     assert repr(move) == 'Move(4, 6, hit=True)'
-    assert str(move) == '4/6*'
-    assert move.to_str(regular=True) == '21/19*'
+    assert str(move) == '21/19*'
+    assert move.to_str(regular=False) == '4/6*'
 
     move = Move(25, 21, True)
     assert repr(move) == 'Move(25, 21, hit=True)'

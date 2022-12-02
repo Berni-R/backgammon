@@ -1,6 +1,6 @@
 from typing import Any
 
-from ..core import Color
+from ..core import Color, BLACK_BAR, WHITE_BAR
 from .tools import staple_pos
 
 
@@ -147,12 +147,12 @@ class DisplayStyle:
         if pnt < 0:
             pnt = 25 - pnt
 
-        if pnt in (0, 25):
+        if pnt in (BLACK_BAR, WHITE_BAR):
             x = self.width / 2
             i = staple_pos(n, max_n=4)
-            if pnt == 0:
+            if pnt == BLACK_BAR:
                 y = self.height / 2 + self.point_space / 2 + i * self.scale
-            else:  # pnt == 25
+            else:  # pnt == WHITE_BAR
                 y = self.height / 2 - self.point_space / 2 - i * self.scale
         elif 1 <= pnt <= 24:
             x, up = self.point_to_x_updown(pnt)

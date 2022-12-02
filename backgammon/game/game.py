@@ -3,8 +3,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 import random
 
-from ..core import Color, GameResult, WinType, Move
-from .game_state import GameState
+from ..core import Color, GameResult, WinType, Move, GameState
 from .agent import Agent
 
 
@@ -45,7 +44,7 @@ class Game:
         if len(self.history) > 4:  # doubling, take, move, [move]
             return False
         n_moves = sum(1 for t in self.history if t.action.type == ActionType.MOVE)
-        n_used = sum(1 for unused in self.state.dice_unused if not unused)
+        n_used = sum(1 for used in self.state.dice_used if used)
         return n_moves == n_used
 
     def _repr_svg_(self) -> str:
@@ -66,7 +65,7 @@ class Game:
 
     @property
     def turn(self) -> Color:
-        return self.state.board.turn
+        return self.state.turn
 
     def resigned(self) -> bool:
         return len(self.history) > 0 and self.history[-1].action.type == ActionType.DROP
@@ -77,16 +76,16 @@ class Game:
     def do_move(self, move: Move) -> 'Game':
         state = self.state.copy()
         i = self.state.do_move(move)
-        reward = self.state.board.result().stake if self.state.board.game_over() else 0
+        reward = self.state.result().stake if self.state.board.game_over() else 0
         self.history.append(Transition(state, Action(move), self.state.copy(), reward))
         self.moves.append((i, move))
         return self
 
-    def undo_move(self) -> bool:
+    def undo_move(self, checked: bool = True) -> bool:
         if len(self.moves) == 0:
             return False
         i, move = self.moves.pop()
-        self.state.undo_move(move, i)
+        self.state.undo_move(move, i, checked=checked)
         self.history.pop()
         return True
 
@@ -97,8 +96,8 @@ class Game:
     def result(self) -> GameResult:
         if self.resigned():
             # doubling_turn could still be NONE, turn is sure
-            return GameResult(self.state.board.turn, self.state.board.stake, WinType.NORMAL)
-        return self.state.board.result()
+            return GameResult(self.state.turn, self.state.stake, WinType.NORMAL)
+        return self.state.result()
 
     def _step(
             self,
@@ -114,19 +113,19 @@ class Game:
             agents = {Color.BLACK: agents, Color.WHITE: agents}
 
         if len(self.history) > 0 and self.history[-1].action.type == ActionType.DOUBLE:
-            agent = agents[self.state.board.turn.other()]
+            agent = agents[self.state.turn.other()]
             if agent.will_take_doubling(self.state, points, match_ends_at):
                 action = Action(None, ActionType.TAKE)
-                self.state.board.doubling_turn = self.state.board.turn.other()
-                self.state.board.stake *= 2
+                self.state.doubling_turn = self.state.turn.other()
+                self.state.stake *= 2
                 return action, 0
             else:
                 action = Action(None, ActionType.DROP)
-                return action, -self.state.board.stake  # WinType is always NORMAL
+                return action, -self.state.stake  # WinType is always NORMAL
 
         if len(self.state.dice) == 0:
-            if allow_doubling and len(self.history) > 0 and self.state.board.can_couble():
-                agent = agents[self.state.board.turn]
+            if allow_doubling and len(self.history) > 0 and self.state.can_couble():
+                agent = agents[self.state.turn]
                 if agent.will_double(self.state, points, match_ends_at):
                     action = Action(None, ActionType.DOUBLE)
                     return action, 0
@@ -138,7 +137,7 @@ class Game:
             self.finish_turn()
             return Action(None, ActionType.FINISH_TURN), 0
 
-        agent = agents[self.state.board.turn]
+        agent = agents[self.state.turn]
         move = agent.choose_move(self.state)
         self.do_move(move)
         return Action(move), self.history[-1].reward

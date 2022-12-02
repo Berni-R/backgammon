@@ -7,7 +7,7 @@ class Move:
     dst: int
     hit: bool = False
 
-    def to_str(self, bar_off: bool = True, regular: bool = False) -> str:
+    def to_str(self, bar_off: bool = True, regular: bool = True) -> str:
         src: int | str = self.src
         dst: int | str = self.dst
 

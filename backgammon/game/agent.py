@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Iterable
 
-from ..core import Move
-from .game_state import GameState
+from ..core import Move, GameState
 
 
 class Agent(ABC):
